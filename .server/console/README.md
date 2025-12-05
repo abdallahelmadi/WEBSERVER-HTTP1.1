@@ -18,11 +18,11 @@ Displays a warning message.
 **`log(char const* l)`**  
 Displays a plain log message.
 
-**`GET(char const* path, int status, char const* in)`**  
+**`GET(char const* path, int status, double in)`**  
 Logs an HTTP GET request with the path, status code, and response time.
 
-**`POST(char const* path, int status, char const* in)`**  
+**`POST(char const* path, int status, double in)`**  
 Logs an HTTP POST request with the path, status code, and response time.
 
-**`DELETE(char const* path, int status, char const* in)`**  
+**`DELETE(char const* path, int status, double in)`**  
 Logs an HTTP DELETE request with the path, status code, and response time.

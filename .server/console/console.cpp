@@ -55,7 +55,7 @@ void Console::log(char const* l) const throw() {
   std::cout << " " << l << std::endl;
 }
 
-void Console::GET(char const* path, int status, char const* in) const throw() {
+void Console::GET(char const* path, int status, int in) const throw() {
   std::string statusColor = "\033[0m";
   if (status >= 200 && status < 300)
     statusColor = "\033[38;2;76;175;80m";
@@ -74,10 +74,11 @@ void Console::GET(char const* path, int status, char const* in) const throw() {
   << "\033[0m"
   << " in "
   << in
+  << "ms"
   << std::endl;
 }
 
-void Console::POST(char const* path, int status, char const* in) const throw() {
+void Console::POST(char const* path, int status, int in) const throw() {
   std::string statusColor = "\033[0m";
   if (status >= 200 && status < 300)
     statusColor = "\033[38;2;76;175;80m";
@@ -96,10 +97,11 @@ void Console::POST(char const* path, int status, char const* in) const throw() {
   << "\033[0m"
   << " in "
   << in
+  << "ms"
   << std::endl;
 }
 
-void Console::DELETE(char const* path, int status, char const* in) const throw() {
+void Console::DELETE(char const* path, int status, int in) const throw() {
   std::string statusColor = "\033[0m";
   if (status >= 200 && status < 300)
     statusColor = "\033[38;2;76;175;80m";
@@ -118,5 +120,6 @@ void Console::DELETE(char const* path, int status, char const* in) const throw()
   << "\033[0m"
   << " in "
   << in
+  << "ms"
   << std::endl;
 }

@@ -14,9 +14,9 @@ class Console {
     void info(char const*) const throw();
     void warning(char const*) const throw();
     void log(char const*) const throw();
-    void GET(char const*, int, char const*) const throw();
-    void POST(char const*, int, char const*) const throw();
-    void DELETE(char const*, int, char const*) const throw();
+    void GET(char const*, int, int) const throw();
+    void POST(char const*, int, int) const throw();
+    void DELETE(char const*, int, int) const throw();
 };
 
 extern Console console;
