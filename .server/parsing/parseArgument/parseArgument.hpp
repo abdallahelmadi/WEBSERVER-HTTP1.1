@@ -3,8 +3,10 @@
 #include <console.hpp>
 #include <fcntl.h>
 #include <vector>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 int parseArgument(char* argument, clock_tt startClock);
 
-void pathFd(int fd, clock_tt startClock);
+void pathConfig(char* file, clock_tt startClock);
 void autoConfig(clock_tt startClock);

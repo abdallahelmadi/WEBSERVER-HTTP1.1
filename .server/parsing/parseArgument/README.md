@@ -2,7 +2,7 @@
 
 Allow multiple servers<br/>
 Each server must have location<br/>
-port, app with version, directory, routers as array, not found, error, maxBodySize<br/><br/>
+port, app with version, directory, routers as array<br/><br/>
 
 ## example
 
@@ -16,10 +16,7 @@ port, app with version, directory, routers as array, not found, error, maxBodySi
       "routes": [
         { "path": "/", "source": "./index.html", "method": ["GET"] },
         { "path": "/about", "source": "./about.html", "method": ["GET"] }
-      ],
-      "error": "errors/500.html",
-      "notfound": "errors/404.html",
-      "bodysize": 1048576
+      ]
     }
   ]
 }

@@ -14,9 +14,6 @@ static void versionMessage() {
 }
 
 int parseArgument(char* argument, clock_tt startClock) {
-
-  (void)startClock;
-
   if (std::string(argument) == "--help") {
     helpMessage();
     return 0;
@@ -34,25 +31,16 @@ int parseArgument(char* argument, clock_tt startClock) {
       return 1;
     }
   } else {
-    int fd = open(argument, O_RDONLY);
-    if (fd == -1) {
-      console.issue("Configuration file not found");
-      console.warning("Run `./webserver --help` for more information");
+    try {
+      std::string filepath(argument);
+      size_t dotPos = filepath.find_last_of('.');
+      if (dotPos == std::string::npos || filepath.substr(dotPos) != ".json")
+        throw std::runtime_error("Configuration file must have `.json` extension");
+      pathConfig(argument, startClock);
+      return 0;
+    } catch (std::exception const& e) {
+      console.issue(("Failed to load configuration file: " + std::string(e.what())).c_str());
       return 1;
-    }
-    else {
-      try {
-        std::string filepath(argument);
-        size_t dotPos = filepath.find_last_of('.');
-        if (dotPos == std::string::npos || filepath.substr(dotPos) != ".json")
-          throw std::runtime_error("Configuration file must have .json extension");
-        pathFd(fd, startClock);
-        return 0;
-      } catch (std::exception const& e) {
-        console.issue(("Failed to load configuration file: " + std::string(e.what())).c_str());
-        console.warning("Run `./webserver --help` for more information");
-        return 1;
-      }
     }
   }
 }

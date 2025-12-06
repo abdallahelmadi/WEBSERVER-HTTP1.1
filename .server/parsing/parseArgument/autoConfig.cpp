@@ -2,5 +2,5 @@
 
 void autoConfig(clock_tt startClock) {
   (void)startClock;
-  throw std::runtime_error("autoConfig function is not implemented yet.");
+  throw std::runtime_error("autoConfig function is not implemented yet");
 }

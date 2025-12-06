@@ -7,10 +7,7 @@
       "root": "./",
       "routes": [
         { "path": "/", "source": "index.html", "method": ["GET"] }
-      ],
-      "error": "500.html",
-      "notfound": "404.html",
-      "bodysize": 1048576
+      ]
     }
   ]
 }
