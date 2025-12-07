@@ -13,7 +13,7 @@ static void versionMessage() {
   console.info("`abdallahelmadi42@gmail.com` for more informations");
 }
 
-int parseArgument(char* argument, clock_tt startClock) {
+int parseArgument(char* argument, clock_tt startClock) throw() {
   if (std::string(argument) == "--help") {
     helpMessage();
     return 0;
