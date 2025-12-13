@@ -1,0 +1,20 @@
+{
+  "servers": [
+    {
+      "port": 3003,
+      "name": "example",
+      "version": "0.1.0",
+      "notfound": "404.html",
+      "servererror": "500.html",
+      "log": "access.log",
+      "bodylimit": 1048576,
+      "timeout": 120000,
+      "uploaddir": "./uploads",
+      "index": "index.html",
+      "root": "./",
+      "routes": [
+        { "path": "/", "source": "index.html", "method": ["GET"] }
+      ]
+    }
+  ]
+}

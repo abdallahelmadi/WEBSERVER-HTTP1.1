@@ -1,16 +1,14 @@
-#include <main.hpp>
-#include <unistd.h>
+#include <console.hpp>
+#include <server.hpp>
 
-int main(int ac, char* av[]) {
-  clock_tt start = startClock();
-  if (ac != 2) {
-    console.warning("Run `./webserver --help` for more information");
-    return 1;
-  } else {
-    int r = parseArgument(av[1], start);
-    if (!r) {
-      // open servers, object (serversInfo)
-    }
-    return r;
-  }
+int main(int ac, char *av[]) {
+
+  (void)ac;
+  (void)av;
+
+  std::cout << "Server count: " << server.length() << std::endl;
+
+  server[0].name() = "MyServer";
+
+  return 0;
 }
