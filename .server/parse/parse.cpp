@@ -17,28 +17,29 @@ static int help(void) {
 static int configRules(void) {
   console.info("Read .server/.config/example.json for all available configuration rules");
   console.success("servers: An array of server configurations");
-  console.log("         |");
-  console.log("         |-----> port:        The port number the server will listen on (optional, default: 3000)");
-  console.log("         |-----> name:        The name of your web application, for each web application");
-  console.log("                              should be unique and inside /app folder in the root");
-  console.log("                              directory of /.server (required)");
-  console.log("         |-----> version:     The version of your web application (optional, default: 0.1.0)");
-  console.log("         |-----> notfound:    Path to the HTML file to serve for 404 Not Found errors (optional, default)");
-  console.log("         |-----> servererror: Path to the HTML file to serve for 500 Internal Server errors (optional, default)");
-  console.log("         |-----> log:         Name of the access log file `.server/.log/` (optional, default: <name>.log)");
-  console.log("         |-----> bodylimit:   Maximum size of the request body in bytes (optional, default: 1048576)");
-  console.log("         |-----> timeout:     Request timeout in milliseconds (optional, default: 30000)");
-  console.log("         |-----> uploaddir:   Directory to store uploaded files (optional, default: app/<name>/uploads)");
-  console.log("         |-----> index:       Default file to serve when accessing a directory (optional, default: index.html)");
-  console.log("         |-----> root:        Root directory for serving static files (optional, default: /app/<name>/)");
-  console.log("         |-----> routes:      An array of route configurations (required)");
+  console.log("         │");
+  console.log("         ├───── port:        The port number the server will listen on (optional, default: 3000)");
+  console.log("         ├───── name:        The name of your web application, for each web application");
+  console.log("         │                   should be unique and inside /app folder in the root");
+  console.log("         │                   directory of /.server (required)");
+  console.log("         ├───── version:     The version of your web application (optional, default: 0.1.0)");
+  console.log("         ├───── notfound:    Path to the HTML file to serve for 404 Not Found errors (optional, default)");
+  console.log("         ├───── servererror: Path to the HTML file to serve for 500 Internal Server errors (optional, default)");
+  console.log("         ├───── log:         Name of the access log file `.server/.log/` (optional, default: <name>.log)");
+  console.log("         ├───── bodylimit:   Maximum size of the request body in bytes (optional, default: 1048576)");
+  console.log("         ├───── timeout:     Request timeout in milliseconds (optional, default: 30000)");
+  console.log("         ├───── uploaddir:   Directory to store uploaded files (optional, default: app/<name>/uploads)");
+  console.log("         ├───── index:       Default file to serve when accessing a directory (optional, default: index.html)");
+  console.log("         ├───── root:        Root directory for serving static files (optional, default: /app/<name>/)");
+  console.log("         └───── routes:      An array of route configurations (required)");
   console.log("                       |");
-  console.log("                       |-----> path:   The URL path for the route (required)");
-  console.log("                       |-----> source: The file to serve for this route (required)");
-  console.log("                       |-----> method: An array of allowed HTTP methods for this route (optional, default: [\"GET\"])");
+  console.log("                       ├───── path:   The URL path for the route (required)");
+  console.log("                       ├───── source: The file to serve for this route (required)");
+  console.log("                       └───── method: An array of allowed HTTP methods for this route (optional, default: [\"GET\"])");
   return 2;
 }
 
+void json(std::string& configFileContent);
 static int configFile(std::string const& file) {
   try {
     if (file.empty())
@@ -56,6 +57,7 @@ static int configFile(std::string const& file) {
     if (configFileContent.empty())
       throw std::runtime_error("empty file");
 
+    json(configFileContent);
     return 0;
   } catch (std::exception& e) {
     console.issue("Failed to load configuration file: " + std::string(e.what()));
