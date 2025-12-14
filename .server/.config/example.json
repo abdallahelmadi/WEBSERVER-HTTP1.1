@@ -9,9 +9,9 @@
       "log": "access.log",
       "bodylimit": 1048576,
       "timeout": 120000,
-      "uploaddir": "./uploads",
+      "uploaddir": "uploads",
       "index": "index.html",
-      "root": "./",
+      "root": "/",
       "routes": [
         { "path": "/", "source": "index.html", "method": ["GET"] }
       ]

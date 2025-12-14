@@ -5,7 +5,8 @@ NAME     = webserver
 CPPFLAGS = -Wextra -Wall -Werror -std=c++98
 HEADERS  = -I./.server/lib
 OBJECTS  = ./.server/lib/extern.o \
-		   ./.server/main/main.o
+		   ./.server/main/main.o \
+		   ./.server/parse/parse.o
 
 # rules
 all : $(NAME)
