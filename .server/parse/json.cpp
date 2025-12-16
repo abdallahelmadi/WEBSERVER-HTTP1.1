@@ -10,14 +10,18 @@ static void fillDefault(void) {
     }
     if (server[i].name().empty())
       throw std::runtime_error("web application name is required");
+    else
+      server[i].name() = "app/" + server[i].name();
     if (server[i].version().empty())
       server[i].version() = "0.1.0";
     if (server[i].root().empty())
       server[i].root() = "./";
+
     if (server[i].notfound().empty())
       server[i].notfound() = ".server/.build/not-found.html";
     else
       server[i].notfound() = "app/" + server[i].name() + "/" + server[i].root() + "/" + server[i].notfound();
+
     if (server[i].servererror().empty())
       server[i].servererror() = "app/" + server[i].name() + "/" + server[i].root() + "/" + server[i].servererror();
     if (server[i].log().empty())
