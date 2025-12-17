@@ -25,6 +25,9 @@ clean :
 fclean : clean
 	$(DELETE) $(NAME)
 
+tclean : fclean
+	clear
+
 re : fclean all
 
 .SECONDARY : $(OBJECTS)
