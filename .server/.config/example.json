@@ -40,6 +40,10 @@
           "method": ["GET", "POST"]
         }
       ]
+    },
+    {
+      "name": "test-server",
+      "port": "4000"
     }
   ]
 }

@@ -2,48 +2,13 @@
 #include <console.hpp>
 #include <time.hpp>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <arpa/inet.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <cstring>
-#include <ifaddrs.h>
+#include <request.hpp>
 
-std::string getNetworkIP() {
-    struct ifaddrs *ifaddr, *ifa;
-    
-    if (getifaddrs(&ifaddr) == -1) {
-        return "0.0.0.0";
-    }
-    
-    std::string result = "0.0.0.0";
-    
-    for (ifa = ifaddr; ifa != 0; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == 0) continue;
-        
-        // Check for IPv4 address
-        if (ifa->ifa_addr->sa_family == AF_INET) {
-            char addressBuffer[INET_ADDRSTRLEN];
-            void* addr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
-            inet_ntop(AF_INET, addr, addressBuffer, INET_ADDRSTRLEN);
-            
-            std::string ip = addressBuffer;
-            // Skip loopback (127.x.x.x)
-            if (ip.substr(0, 3) != "127") {
-                result = ip;
-                break;
-            }
-        }
-    }
-    
-    freeifaddrs(ifaddr);
-    return result;
-}
-
-int run(long long start) { (void)start;
-
-  std::string networkIP = getNetworkIP();
-
+std::string getNetworkIP();
+int run(long long start) {
   for (std::size_t i = 0; i < server.length(); i++) {
 
     // create socket
@@ -53,14 +18,19 @@ int run(long long start) { (void)start;
       continue;
     }
 
-    // Set socket options
+    // set socket options
     int opt = 1;
-    setsockopt(serverFD, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (setsockopt(serverFD, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0) {
+      console.issue("Failed to set socket options for " + server[i].name());
+      close(serverFD);
+      continue;
+    }
 
     // Bind socket
     struct sockaddr_in address;
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_addr.s_addr = INADDR_ANY; // bind to all interfaces
+    // (for specific IP, add `ntohs(INADDR_LOOPBACK)` or use `inet_addr("x.x.x.x")`)
     address.sin_port = htons(server[i].port()); // bind to specified port
 
     if (bind(serverFD, (struct sockaddr*)&address, sizeof(address)) < 0) {
@@ -76,7 +46,7 @@ int run(long long start) { (void)start;
       continue;
     }
 
-    console.init(server[i].port(), networkIP, server[i].name(), server[i].version());
+    console.init(server[i].port(), getNetworkIP(), server[i].name(), server[i].version());
     // console.success("Ready in " + (num2str(time::calc(start, time::clock()))) + "ms");
 
     // Accept and handle requests
@@ -93,6 +63,9 @@ int run(long long start) { (void)start;
       char buffer[4096] = {0};
       read(client_fd, buffer, sizeof(buffer) - 1);
 
+      (void)start; // suppress unused variable warning
+      std::cout << "Received request:\n" << buffer << std::endl;
+
       // Send HTTP response
       const char* response = 
         "HTTP/1.1 200 OK\r\n"
@@ -105,8 +78,6 @@ int run(long long start) { (void)start;
       send(client_fd, response, strlen(response), 0);
       close(client_fd);
     }
-
-    close(serverFD);
   }
-  return 0;
+  return 1;
 }

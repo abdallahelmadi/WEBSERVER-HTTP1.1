@@ -4,12 +4,13 @@ DELETE   = rm -rf
 NAME     = webserver
 CPPFLAGS = -Wextra -Wall -Werror -std=c++98
 HEADERS  = -I./.server/lib
-OBJECTS  = ./.server/lib/extern.o \
-		   ./.server/main/main.o \
+OBJECTS  = ./.server/lib/.o \
+		   ./.server/main/.o \
 		   ./.server/parse/parse.o \
 		   ./.server/parse/json.o \
 		   ./.server/parse/generate.o \
-		   ./.server/run/run.o
+		   ./.server/run/.o \
+		   ./.server/run/utils/.o \
 
 # rules
 all : $(NAME)

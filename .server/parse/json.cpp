@@ -49,6 +49,8 @@ static void fillDefault(void) {
       for (std::size_t j = 0; j < server[i].length(); j++) {
         if (server[i].route(j).path().empty())
           throw std::runtime_error("route path is required");
+        else if (server[i].route(j).path().find('?') != std::string::npos)
+          throw std::runtime_error("route path cannot contain query string (queries are ignored, don't handled yet)");
         tempPaths.push_back(server[i].route(j).path());
         if (server[i].route(j).path()[0] != '/')
           throw std::runtime_error("route path must start with '/'");
