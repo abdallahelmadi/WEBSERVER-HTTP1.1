@@ -11,6 +11,9 @@ OBJECTS  = ./.server/lib/.o \
 		   ./.server/parse/generate.o \
 		   ./.server/run/.o \
 		   ./.server/run/utils/.o \
+		   ./.server/run/method/get.o \
+		   ./.server/run/method/post.o \
+		   ./.server/run/method/delete.o
 
 # rules
 all : $(NAME)

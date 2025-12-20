@@ -8,9 +8,13 @@
 #include <sstream>
 #include <poll.h>
 #include <request.hpp>
+#include <fstream>
 #include <status.hpp>
 
 std::string getNetworkIP();
+void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime);
+void methodPost(int client, request& req, ctr& currentServer, long long startRequestTime);
+void methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime);
 int run(long long start) {
 
   std::vector<struct pollfd> pollfds; // list of poll file descriptors
@@ -98,30 +102,49 @@ int run(long long start) {
           continue;
         }
 
-        request req(requestBuffer);
+        request req(requestBuffer); // parse request
 
         if (req.getBadRequest()) {
-          // std::stringstream response;
-          // response << "HTTP/1.1 " << req.getBadRequest() << " Error\r\n\r\n";
-          // std::string responseStr = response.str();
-          // send(client, responseStr.c_str(), responseStr.length(), 0);
-          // console.METHODS(req.getMethod(), req.getPath(), req.getBadRequest(), time::calcl(startRequestTime, time::clock()));
-          // delete requestBuffer;
-          // close(client);
-          // continue;
+          // check if user create page error for this bad request code
+          // std::ifstream file;
+          // std::string customErrorPagePath = server[i];
+          // if (!customErrorPagePath.empty()) {
+          //   file.open(customErrorPagePath.c_str());
+          // }
+
+          std::stringstream response;
+          response << "HTTP/1.1 " << req.getBadRequest() << " " << status(req.getBadRequest()).message() << "\r\n\r\n" << req.getBadRequest();
+          std::string responseStr = response.str();
+          send(client, responseStr.c_str(), responseStr.length(), 0);
+          console.METHODS(req.getMethod(), req.getPath(), req.getBadRequest(), time::calcl(startRequestTime, time::clock()));
+          delete requestBuffer;
+          close(client);
+          continue;
         }
 
         char buffer;
         if (read(client, &buffer, 1) < 0) { // check if there's more data to read
-
-          // ;//413
-
-          // delete requestBuffer;
-          // close(client);
-          // continue;
+          std::stringstream response;
+          response << "HTTP/1.1 413 "<< status(413).message() << "\r\n\r\n" << 413;
+          std::string responseStr = response.str();
+          send(client, responseStr.c_str(), responseStr.length(), 0);
+          console.METHODS(req.getMethod(), req.getPath(), 413, time::calcl(startRequestTime, time::clock()));
+          delete requestBuffer;
+          close(client);
+          continue;
         }
 
         delete requestBuffer;
+        requestBuffer = NULL;
+
+        if (req.getMethod() == "GET") {
+          methodGet(client, req, server[i], startRequestTime);
+        } else if (req.getMethod() == "POST") {
+          methodPost(client, req, server[i], startRequestTime);
+        } else if (req.getMethod() == "DELETE") {
+          methodDelete(client, req, server[i], startRequestTime);
+        }
+
         close(client);
       }
     }
