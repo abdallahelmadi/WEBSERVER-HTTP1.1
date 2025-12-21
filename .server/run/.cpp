@@ -10,6 +10,7 @@
 #include <request.hpp>
 #include <fstream>
 #include <status.hpp>
+#include <error.hpp>
 
 std::string getNetworkIP();
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime);
@@ -33,19 +34,19 @@ int run(long long start) {
       continue;
     }
 
+    // set socket options to reuse address
+    int opt = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+      console.issue("Failed to set SO_REUSEADDR for " + server[i].name());
+      close(sockfd);
+      continue;
+    }
+
     // setup server info (i want to listen)
     // bind(): server side, connect(): client side
     serverInfo.sin_port = htons(server[i].port()); // convert to byte order
     if (bind(sockfd, reinterpret_cast<const sockaddr*>(&serverInfo), sizeof(struct sockaddr_in)) < 0) {
       console.issue("Failed to bind socket for " + server[i].name());
-      close(sockfd);
-      continue;
-    }
-
-    // set socket options to reuse address
-    int opt = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-      console.issue("Failed to set SO_REUSEADDR for " + server[i].name());
       close(sockfd);
       continue;
     }
@@ -124,9 +125,7 @@ int run(long long start) {
           file.close();
 
           // send default error page
-          std::string body = "<html><head><title>" + badReqStr + " " + status(req.getBadRequest()).message() +
-          "</title></head><body><h1>" + badReqStr + " " + status(req.getBadRequest()).message() +
-          "</h1></body></html>";
+          std::string body = error(req.getBadRequest()).page();
           std::stringstream response;
           response << "HTTP/1.1 " << req.getBadRequest() << " " << status(req.getBadRequest()).message() << "\r\n\r\n" << body;
           std::string responseStr = response.str();
