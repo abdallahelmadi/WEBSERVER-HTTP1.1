@@ -9,25 +9,24 @@
 #include <permission.hpp>
 #include <sys/stat.h>
 
-bool is_forbedden_path(const std::string& source_path) {
+bool is_forbedden_path(const std::string& source_path, std::string valid_path) {
     struct stat buffer;
-    
+    std::cout << source_path << std::endl;
     if (stat(source_path.c_str(), &buffer) != 0) {
         std::cout << "khdam ala raso\n";
         return false;
     }
-
     if (S_ISREG(buffer.st_mode)) {
       
         for (size_t i = 0; i < secureFiles.size(); i++) {
-            if (source_path.find(secureFiles[i]) != std::string::npos) {
+            if (valid_path == secureFiles[i]) {
                 return true;
             }
         }
     }
     else if (S_ISDIR(buffer.st_mode)) {
         for (size_t i = 0; i < secureFolders.size(); i++) {
-            if (source_path.find(secureFolders[i]) != std::string::npos) {
+            if (valid_path == secureFolders[i]) {
                 return true;
             }
         }
@@ -56,16 +55,18 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
     if (req.getPath() == currentServer.route(i).path()) {
       bool isSecurePath = false;
 
-      // std::string fullPath = sourcePath;
-      // size_t pos = 0;
-      // std::string part;
-      // while((pos = fullPath.find('/', pos)) != std::string::npos) {
-      //   part = fullPath.substr(pos);
-      //   pos += 1;
-      // }
-      // std::cout << part << std::endl;
+      std::string fullPath = sourcePath;
+      size_t pos = 0;
+      std::string part;
+      while((pos = fullPath.find('/', pos)) != std::string::npos) {
+        part = fullPath.substr(pos);
+        pos += 1;
+      }
+      if (!part.empty() && part[0] == '/')
+        part.erase(0, 1);
+      std::cout << part << std::endl;
       // check if forbedden path
-      if(is_forbedden_path(sourcePath))
+      if(is_forbedden_path(sourcePath, part))
         isSecurePath = true;
 
       if(isSecurePath){

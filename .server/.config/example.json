@@ -20,7 +20,7 @@
         },
         {
           "path": "/.env",
-          "source": "./.env",
+          "source": ".env",
           "method": ["GET"]
         },
         {
