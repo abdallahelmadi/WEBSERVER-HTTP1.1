@@ -97,11 +97,15 @@ std::string get_the_Content_Type(const std::string path){
   return "Content-Type: text/plain";
 }
 
-void send_file(int client, const std::string& path, const std::string& clean_path) {
+bool send_file(int client, const std::string& path, const std::string& clean_path,
+    const request& req, long long startRequestTime) {
 
-  std::ifstream file(path.c_str(), std::ios::binary);
-  if (!file.is_open())
-    return;
+  std::ifstream file(path.c_str());
+  if (!file.is_open()){
+    std::cout << "Failed to open file: " << path << "\n";
+    return false;
+  }
+    
   //get the full size of the file
   file.seekg(0, std::ios::end);
   size_t size = file.tellg();
@@ -111,16 +115,27 @@ void send_file(int client, const std::string& path, const std::string& clean_pat
 
   std::string headers =
         "HTTP/1.1 200 OK\r\n"
-        "Content-Length: " + size_str.str() + "\r\n"
-        + get_the_Content_Type(clean_path) + "\r\n"
-        "Connection: close\r\n\r\n";
+        + ("Content-Length: " + size_str.str()) + "\r\n"
+        + get_the_Content_Type(clean_path) + "\r\n\r\n";
 
   send(client, headers.c_str(), headers.size(), 0);
   char buffer[8192]; // 8192 = 8KB
 
   while(file.good()) {
-    
+    file.read(buffer, sizeof(buffer));
+    std::streamsize byte_read = file.gcount(); // get actuale byte read
+    size_t bytes_sent = 0;
+
+    while (bytes_sent < (size_t)byte_read)
+    {
+      ssize_t n = send(client, buffer + bytes_sent, byte_read - bytes_sent, 0);
+      if (n <= 0){}
+        return false;  // client closed or error
+      bytes_sent += n;
+    }
   }
+  console.METHODS(req.getMethod(), req.getPath(), 200, time::calcl(startRequestTime, time::clock()));
+  return true;
 }
 
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
@@ -165,17 +180,21 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
 
       //handele timeout
 
-      std::ifstream file;
-      file.open(sourcePath.c_str());
-      if (file.is_open() == true) {
-        std::stringstream body;
-        body << file.rdbuf();
-        file.close();
-        response = "HTTP/1.1 200 OK\r\n" + get_the_Content_Type(part) + "\r\n\r\n" + body.str();
-        send(client, response.c_str(), response.length(), 0);
-        console.METHODS(req.getMethod(), req.getPath(), 200, time::calcl(startRequestTime, time::clock()));
-        return;
+      // std::ifstream file;
+      // file.open(sourcePath.c_str());
+      // if (file.is_open() == true) {
+      //   std::stringstream body;
+      //   body << file.rdbuf();
+      //   file.close();
+      //   response = "HTTP/1.1 200 OK\r\n" + get_the_Content_Type(part) + "\r\n\r\n" + body.str();
+      //   send(client, response.c_str(), response.length(), 0);
+      //   console.METHODS(req.getMethod(), req.getPath(), 200, time::calcl(startRequestTime, time::clock()));
+      //   return;
+      // }
+      if (send_file(client, sourcePath, part, req, startRequestTime) == true){
+        return ;
       }
+        
 
       // if (is_dir(req) == true){
       //   std::string dirPath = sourcePath;
