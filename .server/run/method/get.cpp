@@ -9,6 +9,7 @@
 #include <permission.hpp>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string>
 
 
 bool is_forbedden_path(const std::string& source_path, std::string valid_path) {
@@ -50,23 +51,77 @@ std::string get_the_Content_Type(const std::string path){
   // std::cout << "path: " << path << std::endl;
   if((pos = path.find(".")) != std::string::npos){
     std::string content_path = path.substr(pos, path.length() - pos);
+    //check if an image !!
     if(content_path == ".jpg")
       return "Content-Type: image/jpg";
     else if (content_path == ".png")
       return "Content-Type: image/png";
+    else if (content_path == ".jpeg")
+      return "Content-Type: image/jpeg";
+    else if (content_path == ".gif")
+      return "Content-Type: image/gif";
+    else if (content_path == ".svg")
+      return "Content-Type: image/svg+xml";
+    //check if a text file !!
     else if (content_path == ".html")
       return "Content-Type: text/html";
     else if (content_path == ".css")
       return "Content-Type: text/css";
     else if (content_path == ".js")
       return "Content-Type: text/js";
-    else if (content_path == ".gif")
-      return "Content-Type: text/gif";
+    else if (content_path == ".txt")
+      return "Content-Type: text/plain";
+    else if (content_path == ".xml")
+      return "Content-Type: text/xml";
+    //check if a application file !!
+    else if (content_path == ".pdf")
+      return "Content-Type: application/pdf";
+    else if (content_path == ".zip")
+      return "Content-Type: application/zip";
+    // check if audio file
+    else if (content_path == ".mp3")
+      return "Content-Type: audio/mpeg";
+    else if (content_path == ".wav")
+      return "Content-Type: audio/wav";
+    // check if video file
+    else if (content_path == ".mp4")
+      return "Content-Type: video/mp4";
+    else if (content_path == ".avi")
+      return "Content-Type: video/x-msvideo";
+    else if (content_path == ".mov")
+      return "Content-Type: video/quicktime";
+    // default
+    else
+      return "Content-Type: application/octet-stream";
   }
   return "Content-Type: text/plain";
 }
 
+void send_file(int client, const std::string& path, const std::string& clean_path) {
 
+  std::ifstream file(path.c_str(), std::ios::binary);
+  if (!file.is_open())
+    return;
+  //get the full size of the file
+  file.seekg(0, std::ios::end);
+  size_t size = file.tellg();
+  file.seekg(0);
+  std::stringstream size_str;
+  size_str << size;
+
+  std::string headers =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Length: " + size_str.str() + "\r\n"
+        + get_the_Content_Type(clean_path) + "\r\n"
+        "Connection: close\r\n\r\n";
+
+  send(client, headers.c_str(), headers.size(), 0);
+  char buffer[8192]; // 8192 = 8KB
+
+  while(file.good()) {
+    
+  }
+}
 
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
@@ -113,8 +168,6 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       std::ifstream file;
       file.open(sourcePath.c_str());
       if (file.is_open() == true) {
-        // std::cout << "is open here" << std::endl;
-        // std::cout << "Serving file: " << sourcePath << std::endl;
         std::stringstream body;
         body << file.rdbuf();
         file.close();
@@ -136,6 +189,8 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
     }
     i++;
   }
+  //check if the file exist in the server root directory
+  //...
   send(client, response.c_str(), response.length(), 0);
   console.METHODS(req.getMethod(), req.getPath(), 404, time::calcl(startRequestTime, time::clock()));
 }
