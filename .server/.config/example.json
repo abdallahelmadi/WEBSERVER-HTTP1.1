@@ -17,9 +17,14 @@
           "path": "/"
         },
         {
-          "path": "/.env",
-          "source": "./.env",
+          "path": "/image",
+          "source": "./Wallpaper.jpg",
           "method": ["GET"]
+        },
+        {
+          "path": "/modules",
+          "source": "modules",
+          "method": ["POST"]
         },
         {
           "path": "/list",
