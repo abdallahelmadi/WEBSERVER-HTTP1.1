@@ -22,6 +22,11 @@
           "path": "/delete/2",
           "source": "/delete/test2.html",
           "method": ["GET", "DELETE"]
+        },
+        {
+          "path": "/upload",
+          "source": "/upload",
+          "method": ["GET", "POST"]
         }
       ]
     }
