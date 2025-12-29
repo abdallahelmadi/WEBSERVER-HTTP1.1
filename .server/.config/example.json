@@ -29,6 +29,12 @@
         {
           "path": "/list",
           "dictlist": "true"
+        },
+        {
+          "path": "/helloworld",
+          "cgi_script": "./cgi/helloworld.py",
+          "cgi_interpreter": "/usr/bin/python3",
+          "cgi_timeout": "20"
         }
       ]
     }

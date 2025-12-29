@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <string>
 #include <dirent.h>
+#include <sys/wait.h>
 
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
@@ -131,8 +132,114 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
   }
 
   // handle cgi execution
-  if (route && route->cgiScript().empty()) {
-    ;
+  if (route && !route->cgiScript().empty()) {
+
+    if (route->cgiInterpreter().empty()) {
+      // 500 internal server error
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+      return;
+    }
+
+    if (permission::check(route->cgiScript())) {
+      // 404 not found
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
+      return;
+    }
+
+    // check if it's a directory
+    struct stat fileStat;
+    if (stat(route->cgiScript().c_str(), &fileStat) != 0 || S_ISDIR(fileStat.st_mode)) {
+      // 404 not found
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
+      return;
+    }
+
+    int pipeFD[2];
+    if (pipe(pipeFD) == -1) {
+      // 500 internal server error
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+      return;
+    }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+      // 500 internal server error
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+      return;
+    }
+
+    if (pid == 0) {
+      // child process
+      close(pipeFD[0]); // close read end
+      dup2(pipeFD[1], 1); // redirect stdout to pipe write end
+      extern char** environ;
+      char* argv[3];
+      argv[0] = const_cast<char*>(route->cgiInterpreter().c_str());
+      argv[1] = const_cast<char*>(route->cgiScript().c_str());
+      argv[2] = NULL;
+      execve(argv[0], argv, environ);
+      _exit(127);
+    } else {
+
+      // parent process
+      close(pipeFD[1]); // close write end
+      int status = 0;
+      int code = 0;
+      waitpid(pid, &status, 0); // wait for child process
+
+      if (WIFEXITED(status))
+        code = WEXITSTATUS(status);
+      else if (WIFSIGNALED(status))
+        code = WTERMSIG(status);
+
+      if (status != 0) {
+        // 500 internal server error
+        std::map<std::string, std::string> Theaders;
+        Theaders["Content-Type"] = "text/html";
+        response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+        return;
+      }
+
+      char buffer[1024];
+      std::stringstream cgiOutput;
+      ssize_t bytesRead;
+      while ((bytesRead = read(pipeFD[0], buffer, sizeof(buffer))) > 0) {
+        cgiOutput.write(buffer, bytesRead);
+      }
+      close(pipeFD[0]); // close read end
+
+      if (bytesRead < 0) {
+        // 500 internal server error
+        std::map<std::string, std::string> Theaders;
+        Theaders["Content-Type"] = "text/html";
+        response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+        return;
+      }
+
+      if (route->cgiTimeout() > 0 && time::calcl(startRequestTime, time::clock()) > static_cast<long long>(route->cgiTimeout())) {
+        // 504 gateway timeout
+        std::map<std::string, std::string> Theaders;
+        Theaders["Content-Type"] = "text/html";
+        response(client, startRequestTime, 504, Theaders, "", req, currentServer).sendResponse();
+        return;
+      }
+
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 200, Theaders, cgiOutput.str(), req, currentServer).sendResponse();
+    }
+
+    return;
   }
 
   std::map<std::string, std::string> Theaders;
