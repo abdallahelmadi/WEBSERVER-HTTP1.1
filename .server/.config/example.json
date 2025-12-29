@@ -24,7 +24,26 @@
         {
           "path": "/delete",
           "source": "./delete/index.html",
-          "method": ["GET", "DELETE"]
+          "method": [
+            "GET",
+            "DELETE"
+          ]
+        },
+        {
+          "path": "/delete/2",
+          "source": "/delete/test2.html",
+          "method": [
+            "GET",
+            "DELETE"
+          ]
+        },
+        {
+          "path": "/upload",
+          "source": "/upload",
+          "method": [
+            "GET",
+            "POST"
+          ]
         },
         {
           "path": "/list",
@@ -35,6 +54,12 @@
           "cgi_script": "./cgi/helloworld.py",
           "cgi_interpreter": "/usr/bin/python3",
           "cgi_timeout": "20"
+        },
+        {
+          "path": "/phpblogs",
+          "cgi_script": "./cgi/blogs.php",
+          "cgi_interpreter": "/usr/bin/php",
+          "cgi_timeout": "240"
         }
       ]
     }
