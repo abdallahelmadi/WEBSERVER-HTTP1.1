@@ -104,8 +104,28 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
     // check if it's a directory
     if (S_ISDIR(fileStat.st_mode)) {
 
-      ;
+      // open web application dir
+      DIR* appDir = opendir(sourcePathToHandle.c_str());
+      if (!appDir) {
+        console.issue("cannot open directory");
+        return;
+      }
 
+      struct dirent* contentTemp;
+      std::stringstream body;
+
+      // read each time directory/file
+      while ((contentTemp = readdir(appDir)) != NULL) {
+        std::string name = contentTemp->d_name;
+        if (name == "." || name == "..")
+          continue;
+        body << "<a href=\"" << route->path() << "/" << name << "\">" << name << "</a><br/>";
+      }
+
+      closedir(appDir);
+      std::map<std::string, std::string> Theaders;
+      Theaders["Content-Type"] = "text/html";
+      response(client, startRequestTime, 200, Theaders, body.str(), req, currentServer).sendResponse();
       return;
     }
   }
