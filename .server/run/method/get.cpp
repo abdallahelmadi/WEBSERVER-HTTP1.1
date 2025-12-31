@@ -15,6 +15,18 @@
 #include <string>
 #include <dirent.h>
 #include <sys/wait.h>
+#include <cstdlib>
+
+std::string generate_session_id(size_t length)
+{
+    static const char hex[] = "0123456789abcdef";
+    std::string id;
+    for (size_t i = 0; i < length; ++i)
+    {
+        id += hex[std::rand() % 16];
+    }
+    return id;
+}
 
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
@@ -28,6 +40,9 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
   }
 
   std::string sourcePathToHandle;
+  // check if we have a cookie for sestion management
+  std::map<std::string, std::string> headers = req.getHeaders();
+  std::map<std::string, std::string>::iterator it = headers.find("Cookie");
 
   if (!route) {
     // absolute path
@@ -40,6 +55,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -59,6 +78,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       std::map<std::string, std::string> Theaders;
       Theaders["Allow"] = "GET, POST, DELETE";
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -71,6 +94,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 404 not found
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
+        if(it != headers.end())
+          Theaders["Set-Cookie"] = it->second;
+        else
+          Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
         response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
         return;
       }
@@ -86,6 +113,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
     std::map<std::string, std::string> Theaders;
     Theaders["Location"] = route->redirect();
     Theaders["Cache-Control"] = "no-store";
+    if(it != headers.end())
+      Theaders["Set-Cookie"] = it->second;
+    else
+      Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
     response(client, startRequestTime, (route->redirect().find("http") == 0 ? 302 : 301), Theaders, "", req, currentServer).sendResponse();
     return;
   }
@@ -98,6 +129,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -126,6 +161,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       closedir(appDir);
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 200, Theaders, body.str(), req, currentServer).sendResponse();
       return;
     }
@@ -138,6 +177,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -146,6 +189,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -156,6 +203,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -165,6 +216,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -174,6 +229,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
       return;
     }
@@ -194,18 +253,22 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // parent process
       close(pipeFD[1]); // close write end
       int status = 0;
-      int code = 0;
+      // int code = 0;
       waitpid(pid, &status, 0); // wait for child process
 
-      if (WIFEXITED(status))
-        code = WEXITSTATUS(status);
-      else if (WIFSIGNALED(status))
-        code = WTERMSIG(status);
+      // if (WIFEXITED(status))
+      //   code = WEXITSTATUS(status);
+      // else if (WIFSIGNALED(status))
+      //   code = WTERMSIG(status);
 
       if (status != 0) {
         // 500 internal server error
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
+        if(it != headers.end())
+          Theaders["Set-Cookie"] = it->second;
+        else
+          Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
         response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
         return;
       }
@@ -222,6 +285,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 500 internal server error
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
+        if(it != headers.end())
+          Theaders["Set-Cookie"] = it->second;
+        else
+          Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
         response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
         return;
       }
@@ -230,12 +297,20 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 504 gateway timeout
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
+        if(it != headers.end())
+          Theaders["Set-Cookie"] = it->second;
+        else
+          Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
         response(client, startRequestTime, 504, Theaders, "", req, currentServer).sendResponse();
         return;
       }
 
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
+      if(it != headers.end())
+        Theaders["Set-Cookie"] = it->second;
+      else
+        Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
       response(client, startRequestTime, 200, Theaders, cgiOutput.str(), req, currentServer).sendResponse();
     }
 
@@ -244,6 +319,10 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
 
   std::map<std::string, std::string> Theaders;
   Theaders["Content-Type"] = type::get(sourcePathToHandle);
+  if(it != headers.end())
+    Theaders["Set-Cookie"] = it->second;
+  else
+    Theaders["Set-Cookie"] = "session_id=" + generate_session_id(16);
   response(client, startRequestTime, 1337, Theaders, "", req, currentServer).sendGETchunks(sourcePathToHandle);
   return;
 }

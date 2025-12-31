@@ -13,6 +13,8 @@
 #include <status.hpp>
 #include <error.hpp>
 #include <signal.h>
+#include <cstdlib>
+#include <ctime> // for std::time
 
 std::string getNetworkIP();
 void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime);
@@ -22,6 +24,7 @@ int run(long long start) {
 
   // Ignore SIGPIPE to prevent crash when client disconnects
   signal(SIGPIPE, SIG_IGN);
+  std::srand(std::time(NULL));
 
   std::vector<struct pollfd> pollfds; // list of poll file descriptors
   std::string networkIP = getNetworkIP(); // get the network IP address
