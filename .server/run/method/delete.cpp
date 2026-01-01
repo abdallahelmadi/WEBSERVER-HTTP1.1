@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-void methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime) {
+std::string methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
   // find matching route at config file
   rt* route = NULL;
@@ -42,8 +42,7 @@ void methodDelete(int client, request& req, ctr& currentServer, long long startR
       std::map<std::string, std::string> Theaders;
       Theaders["Allow"] = "GET, POST, DELETE";
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
     }
   }
 
@@ -53,8 +52,7 @@ void methodDelete(int client, request& req, ctr& currentServer, long long startR
     // 404 not found
     std::map<std::string, std::string> Theaders;
     Theaders["Content-Type"] = "text/html";
-    response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
   }
 
   // check if it's a directory
@@ -62,19 +60,19 @@ void methodDelete(int client, request& req, ctr& currentServer, long long startR
     // 403 forbidden
     std::map<std::string, std::string> Theaders;
     Theaders["Content-Type"] = "text/html";
-    response(client, startRequestTime, 403, Theaders, "", req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 403, Theaders, "", req, currentServer).sendResponse();
   }
 
   // else file, try to delete the file
   if (unlink(sourcePathToDelete.c_str()) == 0) {
     // 204 no content
     std::map<std::string, std::string> Theaders;
-    response(client, startRequestTime, 204, Theaders, "", req, currentServer).sendResponse();
+    return response(client, startRequestTime, 204, Theaders, "", req, currentServer).sendResponse();
   } else {
     // 500 internal server error
     std::map<std::string, std::string> Theaders;
     Theaders["Content-Type"] = "text/html";
-    response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
+    return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
   }
+  return "";
 }

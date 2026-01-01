@@ -117,7 +117,7 @@ void handle_json(const std::string& content , ctr& currentServer) {
 }
 
 
-void methodPost(int client, request& req, ctr& currentServer, long long startRequestTime) {
+std::string methodPost(int client, request& req, ctr& currentServer, long long startRequestTime) {
   // find matching route at config file
   rt* route = NULL;
   for (std::size_t i = 0; i < currentServer.length(); i++) {
@@ -129,8 +129,7 @@ void methodPost(int client, request& req, ctr& currentServer, long long startReq
   if (route == NULL) {
     std::map<std::string, std::string> headers;
     std::string body = "";
-    response(client, startRequestTime, 404, headers, body, req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 404, headers, body, req, currentServer).sendResponse();
   }
   if (
     route->method(0) != "POST" &&
@@ -140,8 +139,7 @@ void methodPost(int client, request& req, ctr& currentServer, long long startReq
     std::map<std::string, std::string> Theaders;
     Theaders["Allow"] = "GET, POST, DELETE";
     Theaders["Content-Type"] = "text/html";
-    response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
   }
 
 
@@ -154,8 +152,7 @@ void methodPost(int client, request& req, ctr& currentServer, long long startReq
       urlencoder.parseBodyContent(contentstored);
       std::map<std::string, std::string> headers;
       std::string body = "Data received:\n" + contentstored;
-      response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
     else if (contentType.find("multipart/form-data") != std::string::npos)
     {
@@ -163,21 +160,18 @@ void methodPost(int client, request& req, ctr& currentServer, long long startReq
       if (handle_multipart(contentbody, req, currentServer) == -1) {
         std::map<std::string, std::string> headers;
         std::string body = "";
-        response(client, startRequestTime, 400, headers, body, req, currentServer).sendResponse();
-        return;
+        return response(client, startRequestTime, 400, headers, body, req, currentServer).sendResponse();
       }
       std::map<std::string, std::string> headers;
       std::string body = "Multipart data received and processed.";
-      response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
     else if (contentType.find("text/plain") != std::string::npos)
     {
       std::string contentstored = req.getBody();
       std::map<std::string, std::string> headers;
       std::string body = "Data received:\n" + contentstored;
-      response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
     else if (contentType.find("application/json") != std::string::npos)
     {
@@ -185,25 +179,22 @@ void methodPost(int client, request& req, ctr& currentServer, long long startReq
       handle_json(content, currentServer);
       std::map<std::string, std::string> headers;
       std::string body = "JSON Data received:\n" + content;
-      response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
     else {
       std::map<std::string, std::string> headers;
       std::string body = "";
-      response(client, startRequestTime, 415, headers, body, req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 415, headers, body, req, currentServer).sendResponse();
     }
   }
   else if (req.getBody().empty()) {
     std::map<std::string, std::string> headers;
-    response(client, startRequestTime, 200, headers, "[]", req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 200, headers, "[]", req, currentServer).sendResponse();
   }
   else {
     std::map<std::string, std::string> headers;
     std::string body = "";
-    response(client, startRequestTime, 400, headers, body, req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, 400, headers, body, req, currentServer).sendResponse();
   }
+  return "";
 }

@@ -16,7 +16,7 @@
 #include <dirent.h>
 #include <sys/wait.h>
 
-void methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
+std::string methodGet(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
   // find matching route at config file
   rt* route = NULL;
@@ -40,8 +40,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
     }
 
     // check if it's a directory
@@ -59,8 +58,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       std::map<std::string, std::string> Theaders;
       Theaders["Allow"] = "GET, POST, DELETE";
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
     }
 
     if (route->cgiScript().empty() && route->dictlist() == false && route->redirect().empty()) {
@@ -71,8 +69,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 404 not found
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
-        response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-        return;
+        return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
       }
 
       // check if it's a directory
@@ -86,8 +83,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
     std::map<std::string, std::string> Theaders;
     Theaders["Location"] = route->redirect();
     Theaders["Cache-Control"] = "no-store";
-    response(client, startRequestTime, (route->redirect().find("http") == 0 ? 302 : 301), Theaders, "", req, currentServer).sendResponse();
-    return;
+    return response(client, startRequestTime, (route->redirect().find("http") == 0 ? 302 : 301), Theaders, "", req, currentServer).sendResponse();
   }
 
   // handle dictlist
@@ -98,8 +94,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
     }
 
     // check if it's a directory
@@ -109,7 +104,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       DIR* appDir = opendir(sourcePathToHandle.c_str());
       if (!appDir) {
         console.issue("cannot open directory");
-        return;
+        return "";
       }
 
       struct dirent* contentTemp;
@@ -126,8 +121,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       closedir(appDir);
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 200, Theaders, body.str(), req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 200, Theaders, body.str(), req, currentServer).sendResponse();
     }
   }
 
@@ -138,16 +132,14 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
     }
 
     if (permission::check(route->cgiScript())) {
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
     }
 
     // check if it's a directory
@@ -156,8 +148,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
     }
 
     int pipeFD[2];
@@ -165,8 +156,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
     }
 
     pid_t pid = fork();
@@ -174,8 +164,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
       // 500 internal server error
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
-      return;
+      return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
     }
 
     if (pid == 0) {
@@ -206,8 +195,7 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 500 internal server error
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
-        response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
-        return;
+        return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
       }
 
       char buffer[1024];
@@ -222,28 +210,25 @@ void methodGet(int client, request& req, ctr& currentServer, long long startRequ
         // 500 internal server error
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
-        response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
-        return;
+        return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
       }
 
       if (route->cgiTimeout() > 0 && time::calcl(startRequestTime, time::clock()) > static_cast<long long>(route->cgiTimeout())) {
         // 504 gateway timeout
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
-        response(client, startRequestTime, 504, Theaders, "", req, currentServer).sendResponse();
-        return;
+        return response(client, startRequestTime, 504, Theaders, "", req, currentServer).sendResponse();
       }
 
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
-      response(client, startRequestTime, 200, Theaders, cgiOutput.str(), req, currentServer).sendResponse();
+      return response(client, startRequestTime, 200, Theaders, cgiOutput.str(), req, currentServer).sendResponse();
     }
 
-    return;
+    return "";
   }
 
   std::map<std::string, std::string> Theaders;
   Theaders["Content-Type"] = type::get(sourcePathToHandle);
-  response(client, startRequestTime, 1337, Theaders, "", req, currentServer).sendGETchunks(sourcePathToHandle);
-  return;
+  return response(client, startRequestTime, 1337, Theaders, "", req, currentServer).sendResponse();
 }
