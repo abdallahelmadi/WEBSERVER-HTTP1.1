@@ -16,10 +16,14 @@
 #include <sys/epoll.h>
 #include "epoll_handle.hpp"
 #include <client.hpp>
+#include <algorithm>
+#include <fcntl.h>
 
 std::string getNetworkIP();
 int run(long long start) {
 
+  std::map<int, Client> clients;
+  std::vector<int> client_sockets;
   // Ignore SIGPIPE to prevent crash when client disconnects
   signal(SIGPIPE, SIG_IGN);
 
@@ -33,6 +37,7 @@ int run(long long start) {
   // struct epoll_event event;
   struct epoll_event ev;
   int pollfd = epoll_create1(0);
+  // Client clientObj;
   for (std::size_t i = 0; i < server.length(); i++) {
 
     // open socket for each server
@@ -41,6 +46,7 @@ int run(long long start) {
       console.issue("Failed to create socket for " + server[i].name());
       continue;
     }
+    fcntl(sockfd, F_SETFL, O_NONBLOCK); // set non-blocking
 
     // set socket options to reuse address
     int opt = 1;
@@ -66,41 +72,65 @@ int run(long long start) {
       close(sockfd);
       continue;
     }
-
+    client_sockets.push_back(sockfd);
     ev.data.fd = sockfd;
     ev.events = EPOLLIN;
     epoll_ctl(pollfd, EPOLL_CTL_ADD, sockfd, &ev);
     // log server start
     console.init(server[i].port(), networkIP, server[i].name(), server[i].version());
+    std::cout << "inside loop 1" << std::endl;
   }
   console.success("Ready in " + time::calcs(start, time::clock()) + "ms\n");
+  std::cout << "out of loop 1" << std::endl;
   while (true)
   {
     struct epoll_event event[1000];
-    int event_count = epoll_wait(pollfd, event, 1, -1);
+    int event_count = epoll_wait(pollfd, event, 1000, -1);
     for (int i = 0; i < event_count; i++)
     {
-      if (ev.data.fd == event[i].data.fd)
+      int fd_check = event[i].data.fd;
+      // Find if this is a server socket and get its index
+      std::vector<int>::iterator it = std::find(client_sockets.begin(), client_sockets.end(), fd_check);
+      if (it != client_sockets.end())
       {
-        int client = accept(ev.data.fd, NULL, NULL);
-        if (client < 0 ) continue;
+        // This is a server socket - accept new connection
+        int server_idx = it - client_sockets.begin();
+        int client = accept(fd_check, NULL, NULL);  // Use fd_check, not ev.data.fd
+        if (client < 0) continue;
+        fcntl(client, F_SETFL, O_NONBLOCK); // set non-blocking
+        ev.data.fd = client;
+        ev.events = EPOLLIN;
+        epoll_ctl(pollfd, EPOLL_CTL_ADD, client, &ev);
+        clients[client] = Client(client, server_idx);
+        std::cout << "New client connected on server index " << server_idx << std::endl;
       }
       else
       {
-        Client clientObj;
-        if (event[i].events & EPOLLIN)
+        // This is a client socket
+        int client_fd = event[i].data.fd;
+        Client& clientObj = clients[client_fd];
+        int server_idx = clientObj.server_index;
+        
+        if (event[i].events & (EPOLLERR | EPOLLHUP))
         {
-          // Handle client request here
-          handle_read_event(event[i].data.fd, server[i], event[i], clientObj);
+          // Client disconnected or error
+          epoll_ctl(pollfd, EPOLL_CTL_DEL, client_fd, NULL);
+          close(client_fd);
+          clients.erase(client_fd);
+        }       
+        else if (event[i].events & EPOLLIN)
+        {
+          if (handle_read_event(client_fd, server[server_idx], event[i], clientObj, client_sockets, pollfd) < 0) {
+            clients.erase(client_fd);
+          }
+          std::cout << "Handled read event for client on server index " << server_idx << std::endl;
         }
         else if (event[i].events & EPOLLOUT)
         {
-          // Handle client write here
-          handle_write_event(event[i].data.fd, server[i], event[i], clientObj);
-        }
-        else
-        {
-          console.issue("Unknown event type");
+          if (handle_write_event(client_fd, server[server_idx], event[i], clientObj, client_sockets, pollfd) < 0) {
+            clients.erase(client_fd);
+          }
+          std::cout << "Handled write event for client on server index " << server_idx << std::endl;
         }
       }
     }

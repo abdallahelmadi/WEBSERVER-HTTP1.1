@@ -41,12 +41,13 @@ class response {
         response << it->first << ": " << it->second << "\r\n";
       }
 
-      response << "\r\n";
+      // Determine the body content
+      std::string bodyContent;
       if (
         (!this->_body.empty()) || (this->_code >= 100 && this->_code < 200) ||
         (this->_code >= 200 && this->_code < 300)
       ) {
-        response << this->_body;
+        bodyContent = this->_body;
       }
       else if ((this->_code >= 300 && this->_code < 400) || (this->_code >= 400 && this->_code < 600)) {
         std::string errorPage = error(this->_code).page();
@@ -63,8 +64,14 @@ class response {
           }
         }
 
-        response << errorPage;
+        bodyContent = errorPage;
       }
+
+      // Add Content-Length header
+      response << "Content-Length: " << bodyContent.length() << "\r\n";
+      response << "\r\n";
+      response << bodyContent;
+
       console.METHODS(this->_request.getMethod(), this->_request.getPath(), this->_code, time::calcl(this->_startRequestTime, time::clock()));
       return response.str();
     }

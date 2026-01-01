@@ -228,7 +228,19 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
     return "";
   }
 
+  // Read the file content
+  std::ifstream file(sourcePathToHandle.c_str(), std::ios::binary);
+  if (!file.is_open()) {
+    std::map<std::string, std::string> Theaders;
+    Theaders["Content-Type"] = "text/html";
+    return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
+  }
+  
+  std::stringstream fileContent;
+  fileContent << file.rdbuf();
+  file.close();
+
   std::map<std::string, std::string> Theaders;
   Theaders["Content-Type"] = type::get(sourcePathToHandle);
-  return response(client, startRequestTime, 1337, Theaders, "", req, currentServer).sendResponse();
+  return response(client, startRequestTime, 200, Theaders, fileContent.str(), req, currentServer).sendResponse();
 }
