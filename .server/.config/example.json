@@ -14,6 +14,11 @@
       "root": "./",
       "routes": [
         {
+          "path": "/video",
+          "source": "./asset/video1.webm",
+          "method": ["GET"]
+        },
+        {
           "path": "/redirect/1",
           "redirect": "/redirect/2"
         },
