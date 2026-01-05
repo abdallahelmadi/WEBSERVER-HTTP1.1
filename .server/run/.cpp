@@ -23,7 +23,7 @@ std::string getNetworkIP();
 int run(long long start) {
 
   std::map<int, Client> clients;
-  std::vector<int> client_sockets;
+  std::vector<int> server_sockets;
   // Ignore SIGPIPE to prevent crash when client disconnects
   signal(SIGPIPE, SIG_IGN);
 
@@ -35,8 +35,12 @@ int run(long long start) {
   serverInfo.sin_addr.s_addr = INADDR_ANY; // bind to all interfaces on the device (0.0.0.0)
 
   // struct epoll_event event;
-  struct epoll_event ev;
-  int pollfd = epoll_create1(0);
+  // struct epoll_event ev;
+  int epollfd = epoll_create1(0);
+  if (epollfd < 0) {
+    console.issue("Failed to create epoll file descriptor");
+    return -1;
+  }
   // Client clientObj;
   for (std::size_t i = 0; i < server.length(); i++) {
 
@@ -72,65 +76,72 @@ int run(long long start) {
       close(sockfd);
       continue;
     }
-    client_sockets.push_back(sockfd);
+    server_sockets.push_back(sockfd);
+    struct epoll_event ev;
     ev.data.fd = sockfd;
     ev.events = EPOLLIN;
-    epoll_ctl(pollfd, EPOLL_CTL_ADD, sockfd, &ev);
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &ev);
     // log server start
     console.init(server[i].port(), networkIP, server[i].name(), server[i].version());
-    std::cout << "inside loop 1" << std::endl;
   }
   console.success("Ready in " + time::calcs(start, time::clock()) + "ms\n");
-  std::cout << "out of loop 1" << std::endl;
   while (true)
   {
     struct epoll_event event[1000];
-    int event_count = epoll_wait(pollfd, event, 1000, -1);
+    int event_count = epoll_wait(epollfd, event, 1000, -1);
     for (int i = 0; i < event_count; i++)
     {
       int fd_check = event[i].data.fd;
       // Find if this is a server socket and get its index
-      std::vector<int>::iterator it = std::find(client_sockets.begin(), client_sockets.end(), fd_check);
-      if (it != client_sockets.end())
+      std::vector<int>::iterator it = std::find(server_sockets.begin(), server_sockets.end(), fd_check);
+      if (it != server_sockets.end())
       {
         // This is a server socket - accept new connection
-        int server_idx = it - client_sockets.begin();
+        int server_idx = it - server_sockets.begin();
         int client = accept(fd_check, NULL, NULL);  // Use fd_check, not ev.data.fd
         if (client < 0) continue;
         fcntl(client, F_SETFL, O_NONBLOCK); // set non-blocking
+        struct epoll_event ev;
         ev.data.fd = client;
         ev.events = EPOLLIN;
-        epoll_ctl(pollfd, EPOLL_CTL_ADD, client, &ev);
+        epoll_ctl(epollfd, EPOLL_CTL_ADD, client, &ev);
         clients[client] = Client(client, server_idx);
-        std::cout << "New client connected on server index " << server_idx << std::endl;
       }
       else
       {
         // This is a client socket
-        int client_fd = event[i].data.fd;
-        Client& clientObj = clients[client_fd];
+        std::map< int, Client >::iterator client_it = clients.find(fd_check);
+        if (client_it == clients.end()) {
+          epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL);
+          close(fd_check);
+          continue;
+        }
+        // int client_fd = event[i].data.fd;
+        Client& clientObj = client_it->second;
         int server_idx = clientObj.server_index;
         
         if (event[i].events & (EPOLLERR | EPOLLHUP))
         {
           // Client disconnected or error
-          epoll_ctl(pollfd, EPOLL_CTL_DEL, client_fd, NULL);
-          close(client_fd);
-          clients.erase(client_fd);
+          epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL);
+          close(fd_check);
+          clients.erase(fd_check);
         }       
         else if (event[i].events & EPOLLIN)
         {
-          if (handle_read_event(client_fd, server[server_idx], event[i], clientObj, client_sockets, pollfd) < 0) {
-            clients.erase(client_fd);
+          if (handle_read_event(fd_check, server[server_idx], event[i], clientObj, server_sockets, epollfd) < 0) {
+            epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL);
+            close(fd_check);
+            clients.erase(fd_check);
           }
-          std::cout << "Handled read event for client on server index " << server_idx << std::endl;
         }
         else if (event[i].events & EPOLLOUT)
         {
-          if (handle_write_event(client_fd, server[server_idx], event[i], clientObj, client_sockets, pollfd) < 0) {
-            clients.erase(client_fd);
+          if (handle_write_event(fd_check, server[server_idx], event[i], clientObj, server_sockets, epollfd) < 0) {
+            epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL);
+            close(fd_check);
+            clients.erase(fd_check);
           }
-          std::cout << "Handled write event for client on server index " << server_idx << std::endl;
         }
       }
     }

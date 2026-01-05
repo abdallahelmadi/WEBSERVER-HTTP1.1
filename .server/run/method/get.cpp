@@ -259,3 +259,12 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
   Theaders["Content-Type"] = type::get(sourcePathToHandle);
   return response(client, startRequestTime, 200, Theaders, fileContent.str(), req, currentServer).sendResponse();
 }
+// add some variables to the client.hpp to store file descriptor of the big file
+// response will be just the headers
+// then the file descriptor of the opened file
+// and the current position in the file to be sent in the next write event
+// and flags to indicate if the headers have been sent or not
+// badr work -----------------------------------------------
+// then modify the handle_write_event function to check if there is a file to be sent
+// if there is, read a chunk of the file and send it to the client
+// if the whole file has been sent, close the file descriptor and reset the variables 
