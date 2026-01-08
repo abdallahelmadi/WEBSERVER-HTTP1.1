@@ -5,15 +5,17 @@
 #include <time.hpp>
 #include <sys/socket.h>
 #include <response.hpp>
+#include <string>
 #include <fstream>
+#include <sstream>
 class urlencoder {
   private:
     std::map<std::string, std::string> _fields;
   public:
-    void parseBodyContent(std::string& content);
+    void parseBodyContent(std::string& content, ctr& currentServer);
 };
 
-void urlencoder::parseBodyContent(std::string& content)
+void urlencoder::parseBodyContent(std::string& content, ctr& currentServer)
 {
   std::size_t i = 0;
   while (i < content.length())
@@ -47,6 +49,12 @@ void urlencoder::parseBodyContent(std::string& content)
     }
     this->_fields[key] = value;
   }
+  std::string filepath = currentServer.uploaddir() + "form_urlencoded.txt";
+  std::ofstream outfile(filepath.c_str());
+  for (std::map<std::string, std::string>::iterator it = this->_fields.begin(); it != this->_fields.end(); ++it) {
+    outfile << "Field Name: " << it->first << ", Value: " << it->second << "\n";
+  }
+  outfile.close();
 }
 
 int handle_multipart(const std::string& content, request& req , ctr& currentServer) {
@@ -149,7 +157,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     {
       std::string contentstored = req.getBody();
       urlencoder urlencoder;
-      urlencoder.parseBodyContent(contentstored);
+      urlencoder.parseBodyContent(contentstored, currentServer);
       std::map<std::string, std::string> headers;
       std::string body = "Data received:\n" + contentstored;
       return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
@@ -181,10 +189,22 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
       std::string body = "JSON Data received:\n" + content;
       return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
-    else {
+    else
+    {
+      std::stringstream ss;
+      ss << "uploaded_file" << time::clock();
+      std::string filename = ss.str();
+      std::size_t slash_pos = contentType.find('/');
+      if (slash_pos != std::string::npos) {
+        filename += "." + contentType.substr(slash_pos + 1);
+      }
+      std::string filepath = currentServer.uploaddir() + filename;
+      std::ofstream outfile(filepath.c_str(), std::ios::binary);
+      outfile.write(req.getBody().c_str(), req.getBody().size());
+      outfile.close();
       std::map<std::string, std::string> headers;
-      std::string body = "";
-      return response(client, startRequestTime, 415, headers, body, req, currentServer).sendResponse();
+      std::string body = "Binary data received and saved as " + filename;
+      return response(client, startRequestTime, 200, headers, body, req, currentServer).sendResponse();
     }
   }
   else if (req.getBody().empty()) {

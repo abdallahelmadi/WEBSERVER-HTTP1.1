@@ -79,10 +79,10 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     }
     else if (clientObj.header_complete == true && clientObj.body_complete == true) {
         request req(clientObj._request_data);
-        long long startRequestTime = 0;
+        long long startRequestTime = time::clock();
         std::string response;
         if (req.getMethod() == "GET") {
-            response = methodGet(client, req, currentServer, time::clock(), clientObj);
+            response = methodGet(client, req, currentServer, startRequestTime, clientObj);
         } else if (req.getMethod() == "POST") {
             response = methodPost(client, req, currentServer, startRequestTime);
         } else if (req.getMethod() == "DELETE") {
@@ -91,6 +91,10 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
             response = "HTTP/1.1 405 Method Not Allowed\r\n\r\n";
         }
         clientObj.response = response;
+        if (clientObj.response == "") {
+            close(client);
+            return -1;
+        }
         // Modify epoll to watch for write events
         ev.events = EPOLLOUT;
         if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client, &ev) < 0) {
