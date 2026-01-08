@@ -8,7 +8,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include ".server/run/method/post_helper.cpp"
+#include "post_helper.cpp"
+#include <urlencoder.hpp>
 
 std::string methodPost(int client, request& req, ctr& currentServer, long long startRequestTime) {
   // find matching route at config file
