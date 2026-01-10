@@ -3,65 +3,13 @@
 #include <request.hpp>
 #include <client.hpp>
 #include <sys/socket.h>
-#include <cerrno>
 #include <response.hpp>
-
+#include "required_checks_epoll.cpp"
 
 #define READ_BUFFER_SIZE 4096
 std::string methodGet(int client, request& req, ctr& currentServer, long long startRequestTime, Client &clientObj);
 std::string methodPost(int client, request& req, ctr& currentServer, long long startRequestTime);
 std::string methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime);
-void check_request_state(const std::string& requestdata, Client& clientObj) {
-
-    //check for header complete
-    if (!clientObj.header_complete) {
-        std::size_t header_end = clientObj._request_data.find("\r\n\r\n");
-        if (header_end != std::string::npos) {
-            clientObj.header_complete = true;
-            std::size_t content_length_pos = requestdata.find("Content-Length:");
-            if (content_length_pos != std::string::npos) {
-                std::string length_str = requestdata.substr(content_length_pos + 15, requestdata.find("\r\n", content_length_pos) - (content_length_pos + 15));
-                clientObj.content_length = static_cast<size_t>(std::atoi(length_str.c_str()));
-            } else {
-                clientObj.content_length = 0;
-            }
-        } else {
-            return; // Header not complete yet
-        }
-    }
-    //check for body complete
-    if (clientObj.header_complete && !clientObj.body_complete) {
-        std::size_t header_end = clientObj._request_data.find("\r\n\r\n");
-        std::size_t body_start = header_end + 4;
-        if (clientObj._request_data.length() - body_start >= clientObj.content_length) {
-            clientObj.body_complete = true;
-        }
-        else {
-            return; // Body not complete yet
-        }
-    }
-}
-int check_for_connection_close(const std::string& requestdata) {
-    // Implement logic to check for "Connection: close" in the response headers
-    // and handle connection closure if necessary
-    
-    request req(requestdata);
-    std::string connection;
-    try {
-        connection = req.getHeaders().at("Connection");
-    } catch (const std::out_of_range& e) {
-        connection = "keep-alive"; // Default to keep-alive if header not present
-    }
-    if (connection == "close")
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-    return 0;
-}
 
 int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd) {
     (void)server_sockets;
@@ -69,12 +17,7 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     // Read data from client (non-blocking)
     ssize_t byte_readed = read(client, clientObj._buffer_read, sizeof(clientObj._buffer_read) - 1);
     if (byte_readed < 0) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            console.issue("Failed to read from client");
-            close(client);
-            return -1;
-        }
-        return 0; // No data read, try again later
+        return 0; // No data read, try again later (non-blocking socket)
     } else if (byte_readed == 0) {
         close(client);
         return -1; // Client disconnected
@@ -88,7 +31,22 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     }
     else if (clientObj.header_complete == true && clientObj.body_complete == true) {
         request req(clientObj._request_data);
-        long long startRequestTime = 0; // Placeholder for actual timing logic
+        long long startRequestTime = time::clock();
+        if (req.getBadRequest() != 0) {
+            // Handle bad request
+            std::map<std::string, std::string> Theaders;
+            Theaders["Content-Type"] = "text/html";
+            std::string responseStr = response(client, startRequestTime, req.getBadRequest(), Theaders, "", req, currentServer).sendResponse();
+            clientObj.response = responseStr;
+            // Modify epoll to watch for write events
+            ev.events = EPOLLOUT;
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client, &ev) < 0) {
+                console.issue("Failed to modify epoll for write event");
+                close(client);
+                return -1;
+            }
+            return 0;
+        }
         std::string response;
         if (req.getMethod() == "GET") {
             response = methodGet(client, req, currentServer, startRequestTime, clientObj);
@@ -100,6 +58,10 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
             response = "HTTP/1.1 405 Method Not Allowed\r\n\r\n";
         }
         clientObj.response = response;
+        if (clientObj.response == "") {
+            close(client);
+            return -1;
+        }
         // Modify epoll to watch for write events
         ev.events = EPOLLOUT;
         if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client, &ev) < 0) {
@@ -122,12 +84,7 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
     if (clientObj.header_sent == false) {
         ssize_t bytes_sent = send(client, clientObj.response.c_str() + clientObj.write_sent, clientObj.response.size() - clientObj.write_sent, 0);
         if (bytes_sent < 0) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                console.issue("Failed to write to client");
-                close(client);
-                return -1;
-            }
-            return 0; // Try again later
+            return 0; // Try again later (non-blocking socket)
         }
         clientObj.write_sent += static_cast<std::size_t>(bytes_sent);
         if (clientObj.write_sent >= clientObj.response.size()) {
@@ -146,7 +103,8 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
         {
             // Check if we have buffered data to send first (from partial send)
             if (clientObj.write_len == 0) {
-                // No buffered data, read new chunk from file
+                //read new chunk from file
+                fcntl(clientObj.fd_file, F_SETFL, O_NONBLOCK);
                 ssize_t byte_to_send = read(clientObj.fd_file, clientObj._buffer_write, sizeof(clientObj._buffer_write));
                 if (byte_to_send < 0)
                 {
@@ -184,15 +142,7 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
                                       clientObj.write_len - clientObj.write_sent, 0);
             if (bytes_sent < 0)
             {
-                if (errno != EAGAIN && errno != EWOULDBLOCK)
-                {
-                    console.issue("Failed to write streamed data to client");
-                    close(clientObj.fd_file);
-                    clientObj.fd_file = -1;
-                    close(client);
-                    return -1;
-                }
-                return 0; // Try again later
+                return 0; // Try again later (non-blocking socket)
             }
             
             clientObj.write_sent += static_cast<std::size_t>(bytes_sent);
@@ -201,13 +151,12 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
             // Check if current buffer fully sent
             if (clientObj.write_sent >= clientObj.write_len) {
                 clientObj.write_sent = 0;
-                clientObj.write_len = 0; // Reset to read next chunk
+                clientObj.write_len = 0;
             }
 
             // Check if entire file has been sent
             if (clientObj.file_offset >= clientObj.file_size)
             {
-                // Finished streaming
                 clientObj.is_streaming = false;
                 close(clientObj.fd_file);
                 clientObj.fd_file = -1;
@@ -223,12 +172,10 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
                     return -1;
                 }
             }
-            return 0; // Return to allow epoll to trigger next write
+            return 0;
         }
     }
     else if (clientObj.header_sent == true && clientObj.is_streaming == false) {
-        // Non-streaming response already fully sent with headers
-        // Just handle connection close or keep-alive
         if (check_for_connection_close(clientObj._request_data) == 1) {
             close(client);
             return -1;

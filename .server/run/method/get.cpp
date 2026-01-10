@@ -149,9 +149,6 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
       return response(client, startRequestTime, 500, Theaders, "", req, currentServer).sendResponse();
     }
 
-    // Set non-blocking mode
-    fcntl(fd, F_SETFL, O_NONBLOCK);
-
     // Setup client for streaming
     clientObj.fd_file = fd;
     clientObj.file_size = fileStat.st_size;
@@ -164,8 +161,6 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
     headers << "HTTP/1.1 200 OK\r\n";
     headers << "Content-Type: " << type::get(sourcePathToHandle) << "\r\n";
     headers << "Content-Length: " << fileStat.st_size << "\r\n";
-    headers << "Accept-Ranges: bytes\r\n";
-    headers << "Connection: close\r\n";
     headers << "\r\n";
 
     console.METHODS(req.getMethod(), req.getPath(), 200, time::calcl(startRequestTime, time::clock()));
