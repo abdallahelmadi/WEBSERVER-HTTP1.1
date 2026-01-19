@@ -36,7 +36,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
   }
 
-
+  std::cout << "im in post part now" << std::endl;
   if (!req.getBody().empty() && req.getHeaders().find("Content-Length") != req.getHeaders().end() && req.getHeaders().at("Content-Length") != "0") {
     std::string contentType = req.getHeaders().at("Content-Type");
     if (contentType.find("application/x-www-form-urlencoded") != std::string::npos)
@@ -51,6 +51,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     else if (contentType.find("multipart/form-data") != std::string::npos)
     {
       std::string contentbody = req.getBody();
+      // std::cout << "show request body:\n" << contentbody << std::endl;
       if (handle_multipart(contentbody, req, currentServer) == -1) {
         std::map<std::string, std::string> headers;
         std::string body = "";
