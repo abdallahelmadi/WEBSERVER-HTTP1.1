@@ -1,0 +1,67 @@
+{
+  "servers": [
+    {
+      "port": "3000",
+      "name": "my-app",
+      "version": "0.1.0",
+      "404": "./404.html",
+      "500": "./500.html",
+      "log": "./access.log",
+      "bodylimit": "1048576",
+      "timeout": "30000",
+      "uploaddir": "./downloads",
+      "index": "index.html",
+      "root": "./",
+      "routes": [
+        {
+          "path": "/redirect/1",
+          "redirect": "/redirect/2"
+        },
+        {
+          "path": "/redirect/2",
+          "redirect": "https://www.youtube.com/watch?v=hTWKbfoikeg&list=RDhTWKbfoikeg&start_radio=1"
+        },
+        {
+          "path": "/delete",
+          "source": "./delete/index.html",
+          "method": [
+            "GET",
+            "DELETE"
+          ]
+        },
+        {
+          "path": "/delete/2",
+          "source": "/delete/test2.html",
+          "method": [
+            "GET",
+            "DELETE"
+          ]
+        },
+        {
+          "path": "/upload",
+          "source": "/upload",
+          "method": [
+            "GET",
+            "POST"
+          ]
+        },
+        {
+          "path": "/list",
+          "dictlist": "true"
+        },
+        {
+          "path": "/helloworld",
+          "cgi_script": "./cgi/helloworld.py",
+          "cgi_interpreter": "/usr/bin/python3",
+          "cgi_timeout": "20"
+        },
+        {
+          "path": "/phpblogs",
+          "cgi_script": "./cgi/blogs.php",
+          "cgi_interpreter": "/usr/bin/php",
+          "cgi_timeout": "240"
+        }
+      ]
+    }
+  ]
+}
