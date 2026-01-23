@@ -27,6 +27,12 @@ bool start_cgi(Client& clientObj, request& req, rt& route, int epoll_fd, std::ma
     {
         // CHILD
         dup2(pipefd[1], STDOUT_FILENO); // pipefd[1] = write end && pipefd[0] = read end
+        // Redirect stderr to /dev/null to hide interpreter errors
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull != -1) {
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
         close(pipefd[0]);
         close(pipefd[1]);
         char* argv[3];

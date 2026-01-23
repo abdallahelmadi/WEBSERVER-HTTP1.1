@@ -21,6 +21,7 @@
 #include <users.hpp>
 #include <ctime> // for std::time
 #include <response.hpp>
+#include <sys/wait.h> // track cgi exit status
 
 std::string getNetworkIP();
 int run(long long start) {
@@ -178,22 +179,45 @@ int run(long long start) {
               // std::cout.write(buffer, bytes_read);
               // buffer[bytes_read] = '\0';
               // cl.cgi_output.append(buffer, bytes_read);
-              cl.cgi_complete = true;
 
-              std::stringstream response_cgi;
-              response_cgi << "HTTP/1.1 200 OK\r\n";
-              response_cgi << "Content-Length: " << cl.cgi_output.size() << "\r\n";
-              response_cgi << "Content-Type: text/html\r\n";
-              response_cgi << "\r\n";
-              cl.response = response_cgi.str();
-              struct epoll_event ev;
-              ev.data.fd = client_fd;
-              ev.events = EPOLLOUT; // Ready to write response
-              epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
-              epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
-              cgi_fds.erase(fd_check); // Remove from tracking map
-              request ee(cl._request_data);
-              console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
+              //check exit status
+              int status;
+              waitpid(cl.cgi_pid, &status, 0);
+              // check if exited normally
+              int exit_code = WEXITSTATUS(status);
+              if (exit_code != 0){
+                  // handle error response
+                  cl.cgi_complete = true;
+                  std::map<std::string, std::string> Theaders;
+                  Theaders["Content-Type"] = "text/html";
+                  cl.response = ::response(client_fd, cl.cgi_start_time, 500, Theaders, "", request(cl._request_data), ctr()).sendResponse();
+                  struct epoll_event ev;
+                  ev.data.fd = client_fd;
+                  ev.events = EPOLLOUT; // Ready to write response
+                  epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
+                  epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
+                  cgi_fds.erase(fd_check); // Remove from tracking map
+                  request ee(cl._request_data);
+              }
+              else{
+                  // cgi has completed successfully !
+                  cl.cgi_complete = true;
+                  std::stringstream response_cgi;
+                  response_cgi << "HTTP/1.1 200 OK\r\n";
+                  response_cgi << "Content-Length: " << cl.cgi_output.size() << "\r\n";
+                  response_cgi << "Content-Type: text/html\r\n";
+                  response_cgi << "\r\n";
+                  cl.response = response_cgi.str();
+                  struct epoll_event ev;
+                  ev.data.fd = client_fd;
+                  ev.events = EPOLLOUT; // Ready to write response
+                  epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
+                  epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
+                  cgi_fds.erase(fd_check); // Remove from tracking map
+                  request ee(cl._request_data);
+                  console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
+              }
+
             }
             continue; // Move to next event
         }
