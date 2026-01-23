@@ -197,7 +197,6 @@ int run(long long start) {
                   epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
                   epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                   cgi_fds.erase(fd_check); // Remove from tracking map
-                  request ee(cl._request_data);
               }
               else{
                   // cgi has completed successfully !
@@ -214,7 +213,7 @@ int run(long long start) {
                   epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
                   epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                   cgi_fds.erase(fd_check); // Remove from tracking map
-                  request ee(cl._request_data);
+                  request ee(cl._request_data); // parse request again for logging
                   console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
               }
 
