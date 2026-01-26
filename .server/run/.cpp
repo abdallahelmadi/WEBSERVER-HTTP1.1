@@ -199,24 +199,152 @@ int run(long long start) {
                   cgi_fds.erase(fd_check); // Remove from tracking map
               }
               else{
-                  // cgi has completed successfully !
-                  cl.cgi_complete = true;
-                  std::stringstream response_cgi;
-                  response_cgi << "HTTP/1.1 200 OK\r\n";
-                  response_cgi << "Content-Length: " << cl.cgi_output.size() << "\r\n";
-                  response_cgi << "Content-Type: text/html\r\n";
-                  response_cgi << "\r\n";
-                  cl.response = response_cgi.str();
-                  struct epoll_event ev;
-                  ev.data.fd = client_fd;
-                  ev.events = EPOLLOUT; // Ready to write response
-                  epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
-                  epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
-                  cgi_fds.erase(fd_check); // Remove from tracking map
-                  request ee(cl._request_data); // parse request again for logging
-                  console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
-              }
 
+                  // befor build response make sure if the ouptut of cgi has heders or not
+                  size_t header_end = cl.cgi_output.find("\r\n\r\n"); // look for end of headers
+                  std::string headers;
+                  // check for header parsing errors to send 502 Bad Gateway
+                  bool has_errors = false;
+                  bool header_found = false;
+                  std::map<std::string, std::string> cgi_headers;
+                  if (header_end != std::string::npos) {
+                    header_found = true;
+                    // std::cout << "CGI output contains headers." << std::endl;
+                    headers = cl.cgi_output.substr(0, header_end + 4); // extract headers with \r\n\r\n
+                    cl.cgi_output = cl.cgi_output.substr(header_end + 4); // skip past \r\n\r\n
+                    //parse headers
+                    std::istringstream header_stream(headers); // create stream from headers string
+                    std::string line;
+                    
+                    std::string CRLF = "\r\n";
+
+                    while (std::getline(header_stream, line)) {
+
+                        // Handle CRLF: remove trailing '\r'
+                        if (!line.empty() && line[line.size() - 1] == '\r') {
+                            line.erase(line.size() - 1);
+                        }
+
+                        // Empty line = end of headers
+                        if (line.empty()) {
+                            break;
+                        }
+
+                        size_t colon_pos = line.find(':');
+                        if (colon_pos == std::string::npos) {
+                            std::cout << "Invalid header: missing ':' in line: " << line << std::endl;
+                            has_errors = true;
+                            break;
+                        }
+
+                        std::string key = line.substr(0, colon_pos);
+                        std::string value = line.substr(colon_pos + 1);
+
+                        // Key must not be empty
+                        if (key.empty()) {
+                            std::cout << "Invalid header: empty key in line: " << line << std::endl;
+                            has_errors = true;
+                            break;
+                        }
+                        
+                        // Key must be alphanumeric or hyphens only
+                        for (std::string::size_type i = 0; i < key.size(); i++) {
+                            char c = key[i];
+                            if (!std::isalnum(static_cast<unsigned char>(c)) && c != '-') {
+                                std::cout << "Invalid header: bad character in key in line: " << line << std::endl;
+                                has_errors = true;
+                                break;
+                            }
+                        }
+                        if (has_errors) break;
+
+                        // Value must not be empty
+                        if (value.empty()) {
+                            std::cout << "Invalid header: empty value in line: " << line << std::endl;
+                            has_errors = true;
+                            break;
+                        }
+
+                        // OPTIONAL strict check: require space after colon
+                        /*
+                        if (value[0] != ' ') {
+                            std::cout << "Invalid header: missing space after ':' in line: " << line << std::endl;
+                            has_errors = true;
+                            break;
+                        }
+                        */
+
+                        cgi_headers[key] = value;
+                    }
+
+                    if (has_errors) {
+                      // handle error response for header parsing errors
+                      cl.cgi_complete = true;
+                      std::map<std::string, std::string> Theaders;
+                      Theaders["Content-Type"] = "text/html";
+                      cl.response = ::response(client_fd, cl.cgi_start_time, 502, Theaders, "", request(cl._request_data), ctr()).sendResponse();
+                      struct epoll_event ev;
+                      ev.data.fd = client_fd;
+                      ev.events = EPOLLOUT; // Ready to write response
+                      epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
+                      epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
+                      cgi_fds.erase(fd_check); // Remove from tracking map
+                      continue; // Move to next event
+                    }
+                  }
+                  // check if no headers send response normally
+                  if(!header_found){
+                    cl.cgi_complete = true;
+                    std::stringstream response_cgi;
+                    response_cgi << "HTTP/1.1 200 OK\r\n";
+                    response_cgi << "Content-Length: " << cl.cgi_output.size() << "\r\n";
+                    response_cgi << "Content-Type: text/html\r\n";
+                    response_cgi << "\r\n";
+                    cl.response = response_cgi.str(); 
+                    struct epoll_event ev;
+                    ev.data.fd = client_fd;
+                    ev.events = EPOLLOUT; // Ready to write response
+                    epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
+                    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
+                    cgi_fds.erase(fd_check); // Remove from tracking map
+                    request ee(cl._request_data); // parse request again for logging
+                    console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
+                  }
+                  // if headers found and no errors build response !!
+                  else {
+                    cl.cgi_complete = true;
+                    // check if we have the important headers (Content-Type, Content-Length, Status)
+                    std::stringstream headers_stream;
+                    if(headers.find("Content-Type") != std::string::npos){
+                      headers_stream << "Content-Type: " << cgi_headers["Content-Type"] << "\r\n";
+                    } else {
+                      headers_stream << "Content-Type: text/html\r\n";
+                    }
+                    if(headers.find("Content-Length") != std::string::npos){
+                      headers_stream << "Content-Length: " << cgi_headers["Content-Length"] << "\r\n";
+                    } else {
+                      headers_stream << "Content-Length: " << cl.cgi_output.size() << "\r\n";
+                    }
+                    // check if we have status header later
+                    // add other headers from cgi output without duplicates
+                    for (std::map<std::string, std::string>::iterator it = cgi_headers.begin(); it != cgi_headers.end(); ++it) {
+                      if (it->first != "Content-Type" && it->first != "Content-Length") {
+                        headers_stream << it->first << ": " << it->second << "\r\n";
+                      }
+                    }
+                    headers_stream << "\r\n"; // end of headers
+                    // build final response
+                    cl.response = "HTTP/1.1 200 OK\r\n" + headers_stream.str() + cl.cgi_output;
+                    struct epoll_event ev;
+                    ev.data.fd = client_fd;
+                    ev.events = EPOLLOUT; // Ready to write response
+                    epoll_ctl(epollfd, EPOLL_CTL_MOD, client_fd, &ev); // Switch to write event
+                    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
+                    cgi_fds.erase(fd_check); // Remove from tracking map
+                    request ee(cl._request_data); // parse request again for logging
+                    console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
+                  }
+              }
             }
             continue; // Move to next event
         }
