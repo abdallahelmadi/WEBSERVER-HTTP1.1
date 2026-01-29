@@ -61,7 +61,6 @@ class request {
       if (posQuery != std::string::npos) {
         endPath = std::min(endPath, posQuery);
         this->_query = pathTemp.substr(posQuery + 1);
-        std::cout << this->_query << std::endl;
       }
       if (posFragment != std::string::npos)
         endPath = std::min(endPath, posFragment);

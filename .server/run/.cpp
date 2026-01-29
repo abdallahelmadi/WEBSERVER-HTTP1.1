@@ -308,13 +308,14 @@ int run(long long start, char *envp[]) {
                     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                     cgi_fds.erase(fd_check); // Remove from tracking map
                     request ee(cl._request_data); // parse request again for logging
+
                     console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
                   }
                   // if headers found and no errors build response !!
                   else {
                     cl.cgi_complete = true;
                     std::string status_line = "HTTP/1.1 200 OK\r\n";
-                    if (cgi_headers.count("Status")) {
+                    if (cgi_headers.count("Status")) {                        
                         status_line = "HTTP/1.1 " + cgi_headers["Status"] + "\r\n";
                     }
                     // check if we have the important headers (Content-Type, Content-Length, Status)
@@ -346,6 +347,10 @@ int run(long long start, char *envp[]) {
                     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                     cgi_fds.erase(fd_check); // Remove from tracking map
                     request ee(cl._request_data); // parse request again for logging
+
+
+                    std::cout << cl.response << std::endl;
+
                     console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
                   }
               }
