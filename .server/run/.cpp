@@ -313,6 +313,10 @@ int run(long long start, char *envp[]) {
                   // if headers found and no errors build response !!
                   else {
                     cl.cgi_complete = true;
+                    std::string status_line = "HTTP/1.1 200 OK\r\n";
+                    if (cgi_headers.count("Status")) {
+                        status_line = "HTTP/1.1 " + cgi_headers["Status"] + "\r\n";
+                    }
                     // check if we have the important headers (Content-Type, Content-Length, Status)
                     std::stringstream headers_stream;
                     if(headers.find("Content-Type") != std::string::npos){
@@ -334,7 +338,7 @@ int run(long long start, char *envp[]) {
                     }
                     headers_stream << "\r\n"; // end of headers
                     // build final response
-                    cl.response = "HTTP/1.1 200 OK\r\n" + headers_stream.str() + cl.cgi_output;
+                    cl.response = status_line + headers_stream.str();
                     struct epoll_event ev;
                     ev.data.fd = client_fd;
                     ev.events = EPOLLOUT; // Ready to write response
