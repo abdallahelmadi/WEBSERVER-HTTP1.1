@@ -13,9 +13,7 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
 std::string methodPost(int client, request& req, ctr& currentServer, long long startRequestTime, Client &clientObj, UserManager &users);
 std::string methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime);
 
-// check if we can run CGI !!
 int can_start_cgi(request& req, rt& route) {
-    // check if the route is allow GET and POST 
     bool method_allowed = false;
     for (size_t i = 0; i < route.length(); i++) {
         if (route.method(i) == req.getMethod()) {
@@ -25,7 +23,6 @@ int can_start_cgi(request& req, rt& route) {
     }
     if (!method_allowed)
         return 12; // method has ben allowed
-    //check if file exist
     std::string sourcePathToHandle = route.cgiScript();
     struct stat fileStat;
     if (stat(sourcePathToHandle.c_str(), &fileStat) != 0)

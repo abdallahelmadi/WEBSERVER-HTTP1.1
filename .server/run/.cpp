@@ -33,20 +33,17 @@ int run(long long start, char *envp[]) {
   std::srand(std::time(NULL));
   UserManager Users;
 
-  std::string networkIP = getNetworkIP(); // get the network IP address
+  std::string networkIP = getNetworkIP();
 
   struct sockaddr_in serverInfo;
   serverInfo.sin_family = AF_INET; // IPv4
   serverInfo.sin_addr.s_addr = INADDR_ANY; // bind to all interfaces on the device (0.0.0.0)
 
-  // struct epoll_event event;
-  // struct epoll_event ev;
   int epollfd = epoll_create(1);
   if (epollfd < 0) {
     console.issue("Failed to create epoll file descriptor");
     return -1;
   }
-  // Client clientObj;
   for (std::size_t i = 0; i < server.length(); i++) {
 
     // open socket for each server
@@ -65,8 +62,6 @@ int run(long long start, char *envp[]) {
       continue;
     }
 
-    // setup server info (i want to listen)
-    // bind(): server side, connect(): client side
     serverInfo.sin_port = htons(server[i].port()); // convert to byte order
     if (bind(sockfd, reinterpret_cast<const sockaddr*>(&serverInfo), sizeof(struct sockaddr_in)) < 0) {
       console.issue("Failed to bind socket for " + server[i].name());
@@ -150,7 +145,7 @@ int run(long long start, char *envp[]) {
       {
         // This is a server socket - accept new connection
         int server_idx = it - server_sockets.begin();
-        int client = accept(fd_check, NULL, NULL);  // Use fd_check, not ev.data.fd
+        int client = accept(fd_check, NULL, NULL);
         if (client < 0) continue;
         fcntl(client, F_SETFL, O_NONBLOCK); // set non-blocking
         struct epoll_event ev;
@@ -348,7 +343,6 @@ int run(long long start, char *envp[]) {
           close(fd_check);
           continue;
         }        
-        // int client_fd = event[i].data.fd;
         Client& clientObj = client_it->second;
         int server_idx = clientObj.server_index;
         
