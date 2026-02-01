@@ -8,7 +8,6 @@ OBJECTS  = ./.server/lib/.o \
 		   ./.server/main/.o \
 		   ./.server/parse/parse.o \
 		   ./.server/parse/json.o \
-		   ./.server/parse/generate.o \
 		   ./.server/run/.o \
 		   ./.server/run/utils/.o \
 		   ./.server/run/method/get.o \

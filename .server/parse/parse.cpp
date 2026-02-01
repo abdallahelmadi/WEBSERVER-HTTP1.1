@@ -77,13 +77,13 @@ static int configFile(std::string const& file) {
   }
 }
 
-void generate(void);
 static int autoConfig(void) {
   try {
-    generate();
+    std::string ss = "example";
+    configFile(ss);
     return 0;
   } catch (std::exception& e) {
-    console.issue("Failed to generate configuration file: " + std::string(e.what()));
+    console.issue("Failed to load auto configuration file: " + std::string(e.what()));
     return 1;
   }
 }
