@@ -23,12 +23,7 @@ static int configRules(void) {
   console.log("         │                   should be unique and inside /app folder in the root");
   console.log("         │                   directory of /.server (required)");
   console.log("         ├───── version:     The version of your web application (optional, default: 0.1.0)");
-  console.log("         ├───── notfound:    Path to the HTML file to serve for 404 Not Found errors (optional, default)");
-  console.log("         ├───── servererror: Path to the HTML file to serve for 500 Internal Server errors (optional, default)");
-  console.log("         ├───── log:         Name of the access log file `.server/.log/` (optional, default: <name>.log)");
-  console.log("         ├───── bodylimit:   Maximum size of the request body in bytes (optional, default: 1048576)");
-  console.log("         ├───── timeout:     Request timeout in milliseconds (optional, default: 30000)");
-  console.log("         ├───── uploaddir:   Directory to store uploaded files (optional, default: app/<name>/uploads)");
+  console.log("         ├───── [status]:    Path to the HTML file to serve [status] code page (optional, default)");
   console.log("         ├───── index:       Default file to serve when accessing a directory (optional, default: index.html)");
   console.log("         ├───── root:        Root directory for serving static files (optional, default: /app/<name>/)");
   console.log("         └───── routes:      An array of route configurations (optional)");
@@ -93,10 +88,8 @@ static int autoConfig(void) {
   }
 }
 
-void loadPermissions(void);
 int parse(int ac, char* av[]) {
   if (ac == 2) {
-    loadPermissions();
     std::string arg = av[1];
     if (arg == "--help")
       return help();

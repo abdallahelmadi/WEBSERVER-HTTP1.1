@@ -4,7 +4,6 @@
 #include <fstream>
 #include <cstdlib>
 
-
 std::string generate_uiid(size_t length)
 {
     static const char hex[] = "0123456789abcdef";
@@ -62,7 +61,7 @@ int handle_multipart(const std::string& content, request& req, ctr& currentServe
                         part.length() - (data_start + 4) - 2
                     );
 
-                    std::string filepath = currentServer.uploaddir() + generate_uiid(6) + "-" + filename;
+                    std::string filepath = currentServer.root() + generate_uiid(6) + "-" + filename;
 
                     std::ofstream outfile(filepath.c_str(), std::ios::binary);
                     outfile.write(filedata.data(), filedata.size());
@@ -92,7 +91,7 @@ int handle_multipart(const std::string& content, request& req, ctr& currentServe
                         std::string stored_data =
                             "Field Name: " + name + ", Value: " + fielddata + "\n";
                         std::ofstream outfile(
-                            (currentServer.uploaddir() + generate_uiid(6) + "-" + "form_fields.txt").c_str(),
+                            (currentServer.root() + generate_uiid(6) + "-" + "form_fields.txt").c_str(),
                             std::ios::app
                         );
                         outfile << stored_data;
@@ -107,9 +106,8 @@ int handle_multipart(const std::string& content, request& req, ctr& currentServe
     return 0;
 }
 
-
 void handle_json(const std::string& content , ctr& currentServer) {
-  std::ofstream outfile( (currentServer.uploaddir() +  generate_uiid(6) + "-" + "data.json").c_str());
+  std::ofstream outfile( (currentServer.root() +  generate_uiid(6) + "-" + "data.json").c_str());
   outfile << content;
   outfile.close();
 }

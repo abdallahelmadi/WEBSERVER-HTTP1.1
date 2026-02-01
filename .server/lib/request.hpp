@@ -6,7 +6,7 @@
 class request {
   private:
     std::string _method;
-    std::string _path; // no query parameters handling
+    std::string _path;
     std::string _http;
     std::map<std::string, std::string> _headers;
     std::string _body;

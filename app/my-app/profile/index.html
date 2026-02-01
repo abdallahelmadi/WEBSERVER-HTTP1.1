@@ -136,7 +136,7 @@
            target="_blank" class="linkedin">LinkedIn</a>
     </div>
 
-    <a href="/logout" class="logout">Logout</a>
+    <a href="/logout" class="logout" onClick="clearCookies()">Logout</a>
 </div>
 
 <script>
@@ -157,6 +157,7 @@
     if (params.get("already_logged_in") === "1") {
         showPopup("already-logged");
     }
+
 </script>
 
 </body>

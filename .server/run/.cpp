@@ -8,7 +8,6 @@
 #include <sstream>
 #include <poll.h>
 #include <request.hpp>
-#include <permission.hpp>
 #include <fstream>
 #include <status.hpp>
 #include <error.hpp>
@@ -19,9 +18,9 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <users.hpp>
-#include <ctime> // for std::time
+#include <ctime>
 #include <response.hpp>
-#include <sys/wait.h> // track cgi exit status
+#include <sys/wait.h>
 
 std::string getNetworkIP();
 int run(long long start, char *envp[]) {
@@ -34,7 +33,6 @@ int run(long long start, char *envp[]) {
   std::srand(std::time(NULL));
   UserManager Users;
 
-  std::vector<struct pollfd> pollfds; // list of poll file descriptors
   std::string networkIP = getNetworkIP(); // get the network IP address
 
   struct sockaddr_in serverInfo;
@@ -43,7 +41,7 @@ int run(long long start, char *envp[]) {
 
   // struct epoll_event event;
   // struct epoll_event ev;
-  int epollfd = epoll_create1(0);
+  int epollfd = epoll_create(1);
   if (epollfd < 0) {
     console.issue("Failed to create epoll file descriptor");
     return -1;
@@ -95,13 +93,10 @@ int run(long long start, char *envp[]) {
   while (true)
   {
     struct epoll_event event[1000];
-    int event_count = epoll_wait(epollfd, event, 1000, 1000); // 1 second timeout
-  // ========== CHECK TIMEOUTS HERE (OUTSIDE event loop) ==========
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
+    int event_count = epoll_wait(epollfd, event, 1000, 1000);
+
+    /*******************************************************************/
+    /*******************************************************************/
     long long current_time = time::clock();
     for (std::map<int, int>::iterator it = cgi_fds.begin(); it != cgi_fds.end(); ) {
       int cgi_fd = it->first;
@@ -116,8 +111,6 @@ int run(long long start, char *envp[]) {
       }
       
       Client& cl = client_it->second;
-      // std::cout << "CGI check: elapsed=" << (current_time - cl.cgi_start_time) 
-      //           << "ms, timeout=" << cl.cgi_timeout_ms << "ms" << std::endl;
       
       if (cl.cgi_timeout_ms > 0 && (current_time - cl.cgi_start_time) > cl.cgi_timeout_ms) {
         if (cl.cgi_pid > 0) {
@@ -145,11 +138,8 @@ int run(long long start, char *envp[]) {
       }
       ++it;
     }
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
-    /* --------------------------------------------------------------------------------------- */
+    /*******************************************************************/
+    /*******************************************************************/
 
     for (int i = 0; i < event_count; i++)
     {
@@ -171,11 +161,8 @@ int run(long long start, char *envp[]) {
       }
       else
       {
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
+        /*******************************************************************/
+        /*******************************************************************/
         if (cgi_fds.find(fd_check) != cgi_fds.end())
         {
             int client_fd = cgi_fds[fd_check];
@@ -185,17 +172,9 @@ int run(long long start, char *envp[]) {
             buffer[bytes_read] = '\0'; // null-terminate the string
             
             if(bytes_read > 0){
-              // std::cout << "pipe is ready to read " << bytes_read << " bytes" << std::endl;
-              // std::cout.write(buffer, bytes_read);
               cl.cgi_output.append(buffer, bytes_read);
             }
             if(bytes_read == 0){
-              // std::cout << "pipe is ready to read " << bytes_read << " bytes" << std::endl;
-              // std::cout.write(buffer, bytes_read);
-              // buffer[bytes_read] = '\0';
-              // cl.cgi_output.append(buffer, bytes_read);
-
-              //check exit status
               int status;
               waitpid(cl.cgi_pid, &status, 0);
               // check if exited normally
@@ -223,6 +202,7 @@ int run(long long start, char *envp[]) {
                   bool header_found = false;
                   std::map<std::string, std::string> cgi_headers;
                   if (header_end != std::string::npos) {
+                    
                     header_found = true;
                     // std::cout << "CGI output contains headers." << std::endl;
                     headers = cl.cgi_output.substr(0, header_end + 4); // extract headers with \r\n\r\n
@@ -234,34 +214,28 @@ int run(long long start, char *envp[]) {
                     std::string CRLF = "\r\n";
 
                     while (std::getline(header_stream, line)) {
-
                         // Handle CRLF: remove trailing '\r'
                         if (!line.empty() && line[line.size() - 1] == '\r') {
                             line.erase(line.size() - 1);
                         }
-
                         // Empty line = end of headers
                         if (line.empty()) {
                             break;
                         }
-
                         size_t colon_pos = line.find(':');
                         if (colon_pos == std::string::npos) {
                             std::cout << "Invalid header: missing ':' in line: " << line << std::endl;
                             has_errors = true;
                             break;
                         }
-
                         std::string key = line.substr(0, colon_pos);
                         std::string value = line.substr(colon_pos + 1);
-
                         // Key must not be empty
                         if (key.empty()) {
                             std::cout << "Invalid header: empty key in line: " << line << std::endl;
                             has_errors = true;
                             break;
                         }
-                        
                         // Key must be alphanumeric or hyphens only
                         for (std::string::size_type i = 0; i < key.size(); i++) {
                             char c = key[i];
@@ -279,15 +253,6 @@ int run(long long start, char *envp[]) {
                             has_errors = true;
                             break;
                         }
-
-                        // OPTIONAL strict check: require space after colon
-                        /*
-                        if (value[0] != ' ') {
-                            std::cout << "Invalid header: missing space after ':' in line: " << line << std::endl;
-                            has_errors = true;
-                            break;
-                        }
-                        */
 
                         cgi_headers[key] = value;
                     }
@@ -373,11 +338,8 @@ int run(long long start, char *envp[]) {
             continue; // Move to next event
         }
 
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
-        /* --------------------------------------------------------------------------------------- */
+        /*******************************************************************/
+        /*******************************************************************/
 
         // This is a client socket
         std::map< int, Client >::iterator client_it = clients.find(fd_check);

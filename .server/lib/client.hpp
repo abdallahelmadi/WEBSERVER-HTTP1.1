@@ -4,11 +4,6 @@
 #include <map>
 #include <vector>
 
-// ============================================================================
-// CLIENT STATE - Tracks each connected client for non-blocking I/O
-// Supports chunked file streaming for large files (videos, etc.)
-// ============================================================================
-
 class Client {
     public:
         int _has_logged_in;
@@ -56,19 +51,9 @@ class Client {
             file_size = 0;
             response.clear();
             fd_file = -1;
-            // server_index = -1;
             response.clear();
             write_sent = 0;
             write_len = 0;
-            // // Close file if streaming
-            // if (file_fd != -1) {
-            //     close(file_fd);
-            //     file_fd = -1;
-            // }
-            // file_size = 0;
-            // file_sent = 0;
-            // headers_sent = false;
-            // is_streaming_file = false;
             cgi_output.clear();
         }
 };

@@ -35,14 +35,12 @@ int can_start_cgi(request& req, rt& route) {
 
 int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd, UserManager &users, std::map<int, int>& cgi_fds, char *envp[]) {
     (void)server_sockets;
-    // (void)cgi_fds;
-    // Implement the logic to handle read events from the client
     ssize_t byte_readed = read(client, clientObj._buffer_read, sizeof(clientObj._buffer_read) - 1);
     if (byte_readed < 0) {
-        return 0; // No data read, try again later (non-blocking socket)
+        return 0;
     } else if (byte_readed == 0) {
         close(client);
-        return -1; // Client disconnected
+        return -1;
     }
     clientObj.read_bytes = static_cast<std::size_t>(byte_readed);
     clientObj._buffer_read[clientObj.read_bytes] = '\0';
@@ -151,17 +149,13 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     return 0;
 }
 
-// ============================================================================
-// HANDLE WRITE EVENT - Non-blocking write to client (supports file streaming)
-// ============================================================================
 int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd) {
     (void)currentServer;
     (void)server_sockets;
-    // Implement the logic to handle write events to the client
     if (clientObj.header_sent == false) {
         ssize_t bytes_sent = send(client, clientObj.response.c_str() + clientObj.write_sent, clientObj.response.size() - clientObj.write_sent, 0);
         if (bytes_sent < 0) {
-            return 0; // Try again later (non-blocking socket)
+            return 0;
         }
         clientObj.write_sent += static_cast<std::size_t>(bytes_sent);
         if (clientObj.write_sent >= clientObj.response.size()) {
@@ -170,15 +164,14 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
             clientObj.write_sent = 0;
             clientObj.write_len = 0;
         } else {
-            return 0; // Header not fully sent, wait for next write event
+            return 0;
         }
     }
     if (clientObj.cgi_complete == true)
     {
-        // Send CGI output
         ssize_t bytes_sent = send(client, clientObj.cgi_output.c_str() + clientObj.write_sent, clientObj.cgi_output.size() - clientObj.write_sent, 0);
         if (bytes_sent < 0) {
-            return 0; // Try again later (non-blocking socket)
+            return 0; 
         }
         clientObj.write_sent += static_cast<std::size_t>(bytes_sent);
         if (clientObj.write_sent >= clientObj.cgi_output.size()) {
@@ -192,15 +185,13 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
             }
             return 0;
         } else {
-            return 0; // CGI output not fully sent, wait for next write event
+            return 0;
         }
     }
     if (clientObj.header_sent == true && clientObj.is_streaming == true)
     {
-        // Implement file streaming logic here
         if (clientObj.fd_file != -1)
         {
-            // Check if we have buffered data to send first (from partial send)
             if (clientObj.write_len == 0) {
                 //read new chunk from file
                 fcntl(clientObj.fd_file, F_SETFL, O_NONBLOCK);
@@ -236,24 +227,21 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
                 clientObj.write_sent = 0;
             }
 
-            // Send buffered data
             ssize_t bytes_sent = send(client, clientObj._buffer_write + clientObj.write_sent, 
                                       clientObj.write_len - clientObj.write_sent, 0);
             if (bytes_sent < 0)
             {
-                return 0; // Try again later (non-blocking socket)
+                return 0;
             }
             
             clientObj.write_sent += static_cast<std::size_t>(bytes_sent);
             clientObj.file_offset += static_cast<std::size_t>(bytes_sent);
 
-            // Check if current buffer fully sent
             if (clientObj.write_sent >= clientObj.write_len) {
                 clientObj.write_sent = 0;
                 clientObj.write_len = 0;
             }
 
-            // Check if entire file has been sent
             if (clientObj.file_offset >= clientObj.file_size)
             {
                 clientObj.is_streaming = false;
@@ -287,6 +275,5 @@ int handle_write_event(int client, ctr& currentServer, struct epoll_event& ev, C
             return -1;
         }
     }
-    
     return 0;
 }

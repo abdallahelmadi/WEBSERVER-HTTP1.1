@@ -33,7 +33,7 @@ class response {
     : _client(client), _startRequestTime(startRequestTime), _code(code), _headers(headers), _body(body), _request(request), _server(server) {}
 
     std::string sendResponse(void) {
-      (void)this->_client; // to avoid unused variable warning
+      (void)this->_client;
       std::stringstream response;
       response << "HTTP/1.1 " << this->_code << " " << status(this->_code).message() << "\r\n";
 
@@ -41,7 +41,6 @@ class response {
         response << it->first << ": " << it->second << "\r\n";
       }
 
-      // Determine the body content
       std::string bodyContent;
       if (
         (!this->_body.empty()) || (this->_code >= 100 && this->_code < 200) ||
@@ -67,11 +66,9 @@ class response {
         bodyContent = errorPage;
       }
 
-      // Add Content-Length header
       response << "Content-Length: " << bodyContent.length() << "\r\n";
       response << "\r\n";
       response << bodyContent;
-
       console.METHODS(this->_request.getMethod(), this->_request.getPath(), this->_code, time::calcl(this->_startRequestTime, time::clock()));
       return response.str();
     }

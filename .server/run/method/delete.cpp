@@ -8,14 +8,12 @@
 #include <path.hpp>
 #include <time.hpp>
 #include <fstream>
-#include <permission.hpp>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
 std::string methodDelete(int client, request& req, ctr& currentServer, long long startRequestTime) {
 
-  // find matching route at config file
   rt* route = NULL;
   for (std::size_t i = 0; i < currentServer.length(); i++) {
     if (path::check(currentServer.route(i).path(), req.getPath())) {
@@ -27,18 +25,16 @@ std::string methodDelete(int client, request& req, ctr& currentServer, long long
   std::string sourcePathToDelete;
 
   if (!route) {
-    // absolute path
-    sourcePathToDelete = currentServer.root() + req.getPath();
+     sourcePathToDelete = currentServer.root() + req.getPath();
     // There is NO automatic index resolution for DELETE
   } else {
-    sourcePathToDelete = route->source();
+    sourcePathToDelete = route->source();}
 
-    // 405 method not allowed
-    if (
-      route->method(0) != "DELETE" &&
-      (route->length() > 1 && route->method(1) != "DELETE") &&
-      (route->length() > 2 && route->method(2) != "DELETE")
-    ) {
+  for (std::size_t i = 0; i < route->length(); i++) {
+    if (route->method(i) == "DELETE") {
+      break;
+    }
+    if (i == route->length() - 1) {
       std::map<std::string, std::string> Theaders;
       Theaders["Allow"] = "GET, POST, DELETE";
       Theaders["Content-Type"] = "text/html";
@@ -48,7 +44,7 @@ std::string methodDelete(int client, request& req, ctr& currentServer, long long
 
   // check if file exists
   struct stat fileStat;
-  if (stat(sourcePathToDelete.c_str(), &fileStat) != 0 || permission::check(sourcePathToDelete)) {
+  if (stat(sourcePathToDelete.c_str(), &fileStat) != 0) {
     // 404 not found
     std::map<std::string, std::string> Theaders;
     Theaders["Content-Type"] = "text/html";

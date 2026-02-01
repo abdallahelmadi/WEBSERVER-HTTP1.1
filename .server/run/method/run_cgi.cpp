@@ -1,6 +1,3 @@
-// #include <iostream>
-// #include <client.hpp>
-// #include <server.hpp>
 #include <run_cgi.hpp>
 #include <time.hpp>
 #include <unistd.h>
@@ -13,7 +10,6 @@
 #include <sstream>
 #include <stdlib.h>
 
-// not work yeat ! 
 void build_env(request &req, rt &route, char **& enva, char *envp[]) {
 
     std::vector<std::string> env_cgi;

@@ -4,22 +4,27 @@
 class path {
   public:
     static bool check(std::string const& p1, std::string const& p2) {
-      std::string path1 = p1;
-      std::string path2 = p2;
-      std::size_t i = 0;
-      while (path1[i]) {
-        if (path1[i] == '/')
-          path1.erase(i, 1);
-        else
-          i++;
-      }
-      i = 0;
-      while (path2[i]) {
-        if (path2[i] == '/')
-          path2.erase(i, 1);
-        else
-          i++;
-      }
+      std::string path1 = normalize(p1);
+      std::string path2 = normalize(p2);
       return (path1 == path2);
+    }
+
+  private:
+    static std::string normalize(std::string const& p) {
+      std::string result;
+      bool lastWasSlash = false;
+      
+      for (std::size_t i = 0; i < p.length(); i++) {
+        if (p[i] == '/') {
+          if (!lastWasSlash) {
+            result += '/';
+            lastWasSlash = true;
+          }
+        } else {
+          result += p[i];
+          lastWasSlash = false;
+        }
+      }
+      return result;
     }
 };

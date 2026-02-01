@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <response.hpp>
 #include <string>
+#include <path.hpp>
 #include <fstream>
 #include <sstream>
 #include "post_helper.cpp"
@@ -13,11 +14,11 @@
 #include <users.hpp>
 #include <client.hpp>
 
-
-
 std::string methodPost(int client, request& req, ctr& currentServer, long long startRequestTime, Client &clientObj, UserManager &userManager) {
   // find matching route at config file
 
+  /*******************************************************************/
+  /*******************************************************************/
   if(!req.getBody().empty() && req.getBody().find("username") != std::string::npos && req.getBody().find("password") != std::string::npos) {
     std::string username;
     std::string password;
@@ -43,7 +44,6 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
 
     //check if not register request not set 
     if(action_pos == std::string::npos){
-      std::cout << "hadchy mal\n";
       if (userManager.checkLogin(username, password)) {
         std::map<std::string, std::string> headers;
         headers["location"] = "/profile?success=1";
@@ -54,7 +54,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
         return response(client, startRequestTime, 302, headers, "", req, currentServer).sendResponse();
       } else {
         std::map<std::string, std::string> headers;
-        headers["location"] = "/asset/login.html?error=1";
+        headers["location"] = "/login?error=1";
         headers["Cache-Control"] = "no-store";
         return response(client, startRequestTime, 302, headers, "", req, currentServer).sendResponse();
       }
@@ -62,15 +62,17 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     // handle register request
     userManager.addUser(username, password);
     std::map<std::string, std::string> headers;
-    headers["location"] = "/asset/login.html?registered=1";
+    headers["location"] = "/login?registered=1";
     headers["Cache-Control"] = "no-store";
     // userManager.printUsers();
     return response(client, startRequestTime, 302, headers, "", req, currentServer).sendResponse();
   }
+  /*******************************************************************/
+  /*******************************************************************/
 
   rt* route = NULL;
   for (std::size_t i = 0; i < currentServer.length(); i++) {
-    if (currentServer.route(i).path() == req.getPath()) {
+    if (path::check(currentServer.route(i).path(), req.getPath())) {
       route = &currentServer.route(i);
       break;
     }
@@ -80,15 +82,17 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     std::string body = "";
     return response(client, startRequestTime, 404, headers, body, req, currentServer).sendResponse();
   }
-  if (
-    route->method(0) != "POST" &&
-    (route->length() > 1 && route->method(1) != "POST") &&
-    (route->length() > 2 && route->method(2) != "POST")
-  ) {
-    std::map<std::string, std::string> Theaders;
-    Theaders["Allow"] = "GET, POST, DELETE";
-    Theaders["Content-Type"] = "text/html";
-    return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
+
+  for (std::size_t i = 0; i < route->length(); i++) {
+    if (route->method(i) == "POST") {
+      break;
+    }
+    if (i == route->length() - 1) {
+      std::map<std::string, std::string> Theaders;
+      Theaders["Allow"] = "GET, POST, DELETE";
+      Theaders["Content-Type"] = "text/html";
+      return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
+    }
   }
 
   std::cout << "im in post part now" << std::endl;
@@ -119,7 +123,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
     else if (contentType.find("text/plain") != std::string::npos)
     {
       std::string contentstored = req.getBody();
-      std::ofstream outfile((currentServer.uploaddir() + generate_uiid(6) + "-" + "plain_text.txt").c_str());
+      std::ofstream outfile((currentServer.root() + generate_uiid(6) + "-" + "plain_text.txt").c_str());
       outfile << contentstored;
       outfile.close();
       std::map<std::string, std::string> headers;
@@ -143,7 +147,7 @@ std::string methodPost(int client, request& req, ctr& currentServer, long long s
       if (slash_pos != std::string::npos) {
         filename += "." + contentType.substr(slash_pos + 1);
       }
-      std::string filepath = currentServer.uploaddir() + generate_uiid(6) + "-" + filename;
+      std::string filepath = currentServer.root() + generate_uiid(6) + "-" + filename;
       std::ofstream outfile(filepath.c_str(), std::ios::binary);
       outfile.write(req.getBody().c_str(), req.getBody().size());
       outfile.close();

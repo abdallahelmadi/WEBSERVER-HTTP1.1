@@ -9,7 +9,6 @@
 #include <error.hpp>
 #include <fstream>
 #include <sys/socket.h>
-#include <permission.hpp>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
@@ -18,12 +17,11 @@
 #include <client.hpp>
 #include <fcntl.h>
 
-
-#define FILE_STREAM_THRESHOLD 1048576 //1Mb
+#define FILE_STREAM_THRESHOLD 1048576
 
 // add a function to check if the user reqsueted a  profile page while not being logged in
 bool isProfilePageRequestWithoutLogin(request& req, Client& clientObj) {
-  if (req.getPath() == "/profile" && clientObj._has_logged_in == false) {
+  if (path::check(req.getPath(), "/profile") && clientObj._has_logged_in == false) {
     return true;
   }
   return false;
@@ -31,7 +29,7 @@ bool isProfilePageRequestWithoutLogin(request& req, Client& clientObj) {
 
 // add a function to check if the user requested the login page while already being logged in
 bool isLoginPageRequest_but_already_Login(request& req, Client& clientObj) {
-  if (req.getPath() == "/login" && clientObj._has_logged_in == true) {
+  if (path::check(req.getPath(), "/login") && clientObj._has_logged_in == true) {
     return true;
   }
   return false;
@@ -42,7 +40,7 @@ bool isCookieHeaderMissingWhenLoggedIn(request& req, Client& clientObj) {
   
   std::map<std::string, std::string> headers = req.getHeaders();
   // check if we have a cokie header when the user is logged in
-  if(req.getPath() == "/profile" && headers.find("Cookie") == headers.end() && clientObj._has_logged_in == true) {
+  if(path::check(req.getPath(), "/profile") && headers.find("Cookie") == headers.end() && clientObj._has_logged_in == true) {
       clientObj._has_logged_in = false; //force logout
       return true;
   }
@@ -50,7 +48,7 @@ bool isCookieHeaderMissingWhenLoggedIn(request& req, Client& clientObj) {
 }
 
 bool requestforlogout(request& req, Client& clientObj) {
-  if (req.getPath() == "/logout") {
+  if (path::check(req.getPath(), "/logout")) {
     clientObj._has_logged_in = false;
     return true;
   }
@@ -78,13 +76,13 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
     if(requestforlogout(req, clientObj)) {
       std::map<std::string, std::string> headers;
       headers["location"] = "/login?logged_out=1";
-      headers["Set-Cookie"] = "sessionid=;";
+      headers["Set-Cookie"] = "sessionid=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/";
       headers["Cache-Control"] = "no-store";
       return response(client, startRequestTime, 302, headers, "", req, currentServer).sendResponse();
     }
     // check if file exists
     struct stat fileStat;
-    if (stat(sourcePathToHandle.c_str(), &fileStat) != 0 || permission::check(sourcePathToHandle)) {
+    if (stat(sourcePathToHandle.c_str(), &fileStat) != 0) {
       // 404 not found
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
@@ -97,21 +95,21 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
   } else {
     sourcePathToHandle = route->source();
 
-    // 405 method not allowed
-    if (
-      route->method(0) != "GET" &&
-      (route->length() > 1 && route->method(1) != "GET") &&
-      (route->length() > 2 && route->method(2) != "GET")
-    ) {
+  for (std::size_t i = 0; i < route->length(); i++) {
+    if (route->method(i) == "GET") {
+      break;
+    }
+    if (i == route->length() - 1) {
       std::map<std::string, std::string> Theaders;
       Theaders["Allow"] = "GET, POST, DELETE";
       Theaders["Content-Type"] = "text/html";
       return response(client, startRequestTime, 405, Theaders, "", req, currentServer).sendResponse();
     }
+  }
 
     if (route->cgiScript().empty() && route->dictlist() == false && route->redirect().empty()) {
       struct stat fileStat;
-      if (stat(sourcePathToHandle.c_str(), &fileStat) != 0 || permission::check(sourcePathToHandle)) {
+      if (stat(sourcePathToHandle.c_str(), &fileStat) != 0) {
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
         return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
@@ -133,11 +131,14 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
   // handle dictlist
   if (route && route->dictlist()) {
     struct stat fileStat;
-    if (stat(sourcePathToHandle.c_str(), &fileStat) != 0 || permission::check(sourcePathToHandle)) {
+    if (stat(sourcePathToHandle.c_str(), &fileStat) != 0) {
       std::map<std::string, std::string> Theaders;
       Theaders["Content-Type"] = "text/html";
       return response(client, startRequestTime, 404, Theaders, "", req, currentServer).sendResponse();
     }
+
+    std::map<std::string, std::string> Theaders;
+    Theaders["Content-Type"] = "text/html";
 
     if (S_ISDIR(fileStat.st_mode)) {
       DIR* appDir = opendir(sourcePathToHandle.c_str());
@@ -150,13 +151,11 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
       std::stringstream body;
       while ((contentTemp = readdir(appDir)) != NULL) {
         std::string name = contentTemp->d_name;
-        if (name == "." || name == "..")
+        if (name[0] == '.')
           continue;
-        body << "<a href=\"" << route->path() << "/" << name << "\">" << name << "</a><br/>";
+        body << "<a href='" << route->path() << "/" + name << "'>" << name << "</a><br/>";
       }
       closedir(appDir);
-      std::map<std::string, std::string> Theaders;
-      Theaders["Content-Type"] = "text/html";
       return response(client, startRequestTime, 200, Theaders, body.str(), req, currentServer).sendResponse();
     }
   }
@@ -198,6 +197,7 @@ std::string methodGet(int client, request& req, ctr& currentServer, long long st
     // Theaders["Content-Type"] = type::get(sourcePathToHandle);
     return headers.str();
   }
+
   std::ifstream file(sourcePathToHandle.c_str(), std::ios::binary);
   if (!file.is_open()) {
     std::map<std::string, std::string> Theaders;

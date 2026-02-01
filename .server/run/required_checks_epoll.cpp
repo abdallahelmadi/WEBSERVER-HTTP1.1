@@ -3,7 +3,6 @@
 #include <client.hpp>
 #include <cstdlib>
 
-
 void check_request_state(const std::string& requestdata, Client& clientObj) {
     //check for header complete
     if (!clientObj.header_complete) {
@@ -34,14 +33,13 @@ void check_request_state(const std::string& requestdata, Client& clientObj) {
     }
 }
 int check_for_connection_close(const std::string& requestdata) {
-    // Implement logic to check for "Connection: close" in the response headers
     
     request req(requestdata);
     std::string connection;
     try {
         connection = req.getHeaders().at("Connection");
     } catch (const std::out_of_range& e) {
-        connection = "keep-alive"; // Default to keep-alive if header not present
+        connection = "keep-alive";
     }
     if (connection == "close")
     {

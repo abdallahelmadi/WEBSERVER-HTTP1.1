@@ -43,10 +43,6 @@ class ctr {
     std::string _name;
     std::string _version;
     std::map<std::string, std::string> _errorPages;
-    std::string _log;
-    std::size_t _bodylimit;
-    std::size_t _timeout;
-    std::string _uploaddir;
     std::string _index;
     std::string _root;
     std::vector<rt> _routes;
@@ -55,14 +51,10 @@ class ctr {
     inline std::string& name(void) throw() { return this->_name; }
     inline std::string& version(void) throw() { return this->_version; }
     inline std::map<std::string, std::string>& errorPages(void) throw() { return this->_errorPages; }
-    inline std::string& log(void) throw() { return this->_log; }
-    inline std::size_t& bodylimit(void) throw() { return this->_bodylimit; }
-    inline std::size_t& timeout(void) throw() { return this->_timeout; }
-    inline std::string& uploaddir(void) throw() { return this->_uploaddir; }
     inline std::string& index(void) throw() { return this->_index; }
     inline std::string& root(void) throw() { return this->_root; }
 
-    ctr(): _port(0), _bodylimit(0), _timeout(0) {}
+    ctr(): _port(0) {}
 
     rt& route(unsigned int index) throw() { return this->_routes[index]; }
     inline std::size_t length(void) const throw() { return this->_routes.size(); }

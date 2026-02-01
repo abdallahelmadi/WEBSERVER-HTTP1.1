@@ -30,18 +30,6 @@ static void fillDefault(void) {
         throw std::runtime_error("error page path cannot be empty for code: " + it->first);
       it->second = server[i].root() + it->second;
     }
-    if (server[i].log().empty())
-      server[i].log() = ".server/.log/" + server[i].name() + "/" + server[i].name() + ".log";
-    else
-      server[i].log() = server[i].root() + server[i].log();
-    // if (server[i].uploaddir().empty())
-    server[i].uploaddir() = server[i].root();
-    // else
-    //   server[i].uploaddir() = server[i].root() + server[i].uploaddir();
-    if (!server[i].bodylimit())
-      server[i].bodylimit() = 1048576;
-    if (!server[i].timeout())
-      server[i].timeout() = 30000;
     if (server[i].length() != 0) {
       std::vector<std::string> tempPaths;
       for (std::size_t j = 0; j < server[i].length(); j++) {
@@ -417,38 +405,6 @@ static void storeKeyValue(std::string const &key, std::string const &value, ctr 
     if (isString(value))
       throw std::runtime_error("invalid version value");
     s.version() = value.substr(1, value.length() - 2);
-  }
-  else if (key == "log") {
-    if (isString(value))
-      throw std::runtime_error("invalid log value");
-    s.log() = value.substr(1, value.length() - 2);
-  }
-  else if (key == "bodylimit") {
-    if (isString(value))
-      throw std::runtime_error("invalid bodylimit value");
-    std::string temp = value.substr(1, value.length() - 2);
-    if (isDigit(temp))
-      throw std::runtime_error("invalid bodylimit value");
-    long long bodylimit = std::atoll(temp.c_str());
-    if (bodylimit < 1024 || bodylimit > 10737418240LL)
-      throw std::runtime_error("invalid bodylimit value");
-    s.bodylimit() = static_cast<std::size_t>(bodylimit);
-  }
-  else if (key == "timeout") {
-    if (isString(value))
-      throw std::runtime_error("invalid timeout value");
-    std::string temp = value.substr(1, value.length() - 2);
-    if (isDigit(temp))
-      throw std::runtime_error("invalid timeout value");
-    long long timeout = std::atoll(temp.c_str());
-    if (timeout <= 0 || timeout > 3600000)
-      throw std::runtime_error("invalid timeout value");
-    s.timeout() = static_cast<std::size_t>(timeout);
-  }
-  else if (key == "uploaddir") {
-    if (isString(value))
-      throw std::runtime_error("invalid uploaddir value");
-    s.uploaddir() = value.substr(1, value.length() - 2);
   }
   else if (key == "index") {
     if (isString(value))
