@@ -24,7 +24,7 @@
 #include <sys/wait.h> // track cgi exit status
 
 std::string getNetworkIP();
-int run(long long start) {
+int run(long long start, char *envp[]) {
 
   std::map<int, Client> clients;
   std::vector<int> server_sockets;
@@ -308,11 +308,16 @@ int run(long long start) {
                     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                     cgi_fds.erase(fd_check); // Remove from tracking map
                     request ee(cl._request_data); // parse request again for logging
+
                     console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
                   }
                   // if headers found and no errors build response !!
                   else {
                     cl.cgi_complete = true;
+                    std::string status_line = "HTTP/1.1 200 OK\r\n";
+                    if (cgi_headers.count("Status")) {                        
+                        status_line = "HTTP/1.1 " + cgi_headers["Status"] + "\r\n";
+                    }
                     // check if we have the important headers (Content-Type, Content-Length, Status)
                     std::stringstream headers_stream;
                     if(headers.find("Content-Type") != std::string::npos){
@@ -334,7 +339,7 @@ int run(long long start) {
                     }
                     headers_stream << "\r\n"; // end of headers
                     // build final response
-                    cl.response = "HTTP/1.1 200 OK\r\n" + headers_stream.str() + cl.cgi_output;
+                    cl.response = status_line + headers_stream.str();
                     struct epoll_event ev;
                     ev.data.fd = client_fd;
                     ev.events = EPOLLOUT; // Ready to write response
@@ -342,6 +347,10 @@ int run(long long start) {
                     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL); // Remove CGI fd from epoll
                     cgi_fds.erase(fd_check); // Remove from tracking map
                     request ee(cl._request_data); // parse request again for logging
+
+
+                    std::cout << cl.response << std::endl;
+
                     console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
                   }
               }
@@ -368,7 +377,7 @@ int run(long long start) {
         }       
         else if (event[i].events & EPOLLIN)
         {
-          if (handle_read_event(fd_check, server[server_idx], event[i], clientObj, server_sockets, epollfd, Users, cgi_fds) < 0) {
+          if (handle_read_event(fd_check, server[server_idx], event[i], clientObj, server_sockets, epollfd, Users, cgi_fds, envp) < 0) {
             epoll_ctl(epollfd, EPOLL_CTL_DEL, fd_check, NULL);
             close(fd_check);
             clients.erase(fd_check);

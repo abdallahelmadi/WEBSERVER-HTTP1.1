@@ -33,7 +33,7 @@ int can_start_cgi(request& req, rt& route) {
     return 0; // all good
 }
 
-int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd, UserManager &users, std::map<int, int>& cgi_fds) {
+int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd, UserManager &users, std::map<int, int>& cgi_fds, char *envp[]) {
     (void)server_sockets;
     // (void)cgi_fds;
     // Implement the logic to handle read events from the client
@@ -109,7 +109,7 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
                 }
                 return 0;
             }
-            if(start_cgi(clientObj, req, *route, epoll_fd, cgi_fds) == false) {
+            if(start_cgi(clientObj, req, *route, epoll_fd, cgi_fds, envp) == false) {
                 // send error response internal server error 500
                 std::map<std::string, std::string> Theaders;
                 Theaders["Content-Type"] = "text/html";
