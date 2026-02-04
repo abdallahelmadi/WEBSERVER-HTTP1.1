@@ -323,9 +323,6 @@ int run(long long start, char *envp[]) {
                     cgi_fds.erase(fd_check); // Remove from tracking map
                     request ee(cl._request_data); // parse request again for logging
 
-
-                    std::cout << cl.response << std::endl;
-
                     console.METHODS(ee.getMethod(), ee.getPath(), 200, cl.time);
                   }
               }
