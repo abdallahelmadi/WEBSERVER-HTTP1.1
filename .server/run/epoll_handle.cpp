@@ -32,7 +32,9 @@ int can_start_cgi(request& req, rt& route) {
 
 int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Client& clientObj, std::vector<int>& server_sockets, int epoll_fd, UserManager &users, std::map<int, int>& cgi_fds, char *envp[]) {
     (void)server_sockets;
+    static int READED_BY_READ;
     ssize_t byte_readed = read(client, clientObj._buffer_read, sizeof(clientObj._buffer_read) - 1);
+    READED_BY_READ += byte_readed;
     if (byte_readed < 0) {
         return 0;
     } else if (byte_readed == 0) {
@@ -43,7 +45,10 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     clientObj._buffer_read[clientObj.read_bytes] = '\0';
     clientObj._request_data.append(clientObj._buffer_read, clientObj.read_bytes);
     check_request_state(clientObj._request_data, clientObj);
-    if (clientObj.read_bytes >= BODY_LIMIT) {
+    if (clientObj.header_complete == false || clientObj.body_complete == false) {
+        return 0; // Wait for more data
+    }
+    else if (clientObj.sum_read_bytes_body >= BODY_LIMIT) {
         // Body too large
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";
@@ -58,12 +63,8 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
         }
         return 0;
     }
-    if (clientObj.header_complete == false || clientObj.body_complete == false) {
-        return 0; // Wait for more data
-    }
     else if (clientObj.header_complete == true && clientObj.body_complete == true) {
         request req(clientObj._request_data);
-
 
         long long startRequestTime = time::clock();
         if (req.getBadRequest() != 0) {

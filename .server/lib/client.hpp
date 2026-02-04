@@ -10,6 +10,7 @@ class Client {
         int fd;
         char _buffer_read[4096];
         std::size_t read_bytes;
+        std::size_t sum_read_bytes_body;
         bool header_complete;
         bool body_complete;
         size_t content_length;
@@ -35,8 +36,8 @@ class Client {
         std::string cgi_output;
         bool cgi_complete;
 
-        Client() : _has_logged_in(false), fd(-1),  header_complete(false), body_complete(false), content_length(0), header_sent(false), fd_file(-1), is_streaming(false), file_offset(0), file_size(0), write_sent(0), write_len(0), time(0), server_index(-1), cgi_running(false), cgi_pid(-1), cgi_stdout_fd(-1), cgi_start_time(0), cgi_timeout_ms(0), cgi_complete(false) {}
-        Client(int socket_fd, int index) : _has_logged_in(false), fd(socket_fd), header_complete(false), body_complete(false), content_length(0), header_sent(false), fd_file(-1), is_streaming(false), file_offset(0), file_size(0), write_sent(0), write_len(0), time(0), server_index(index), cgi_running(false), cgi_pid(-1), cgi_stdout_fd(-1), cgi_start_time(0), cgi_timeout_ms(0), cgi_complete(false) {}
+        Client() : _has_logged_in(false),  fd(-1), sum_read_bytes_body(0),  header_complete(false), body_complete(false), content_length(0), header_sent(false), fd_file(-1), is_streaming(false), file_offset(0), file_size(0), write_sent(0), write_len(0), time(0), server_index(-1), cgi_running(false), cgi_pid(-1), cgi_stdout_fd(-1), cgi_start_time(0), cgi_timeout_ms(0), cgi_complete(false) {}
+        Client(int socket_fd, int index) : _has_logged_in(false),  fd(socket_fd), sum_read_bytes_body(0), header_complete(false), body_complete(false), content_length(0), header_sent(false), fd_file(-1), is_streaming(false), file_offset(0), file_size(0), write_sent(0), write_len(0), time(0), server_index(index), cgi_running(false), cgi_pid(-1), cgi_stdout_fd(-1), cgi_start_time(0), cgi_timeout_ms(0), cgi_complete(false) {}
         void reset() {
             _buffer_read[0] = '\0';
             _buffer_write[0] = '\0';
