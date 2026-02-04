@@ -4,6 +4,7 @@
 #include "server.hpp"
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 std::string generate_uiid(size_t length);
 
@@ -14,6 +15,30 @@ class urlencoder {
     void parseBodyContent(std::string& content, ctr& currentServer);
 };
 
+void update_string(std::string& str)
+{
+  std::string result;
+  for (std::size_t i = 0; i < str.length(); ++i)
+  {
+    if (str[i] == '+')
+    {
+      result += ' ';
+    }
+    else if (str[i] == '%' && i + 2 < str.length())
+    {
+      std::string hex = str.substr(i + 1, 2);
+      char decoded_char = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
+      result += decoded_char;
+      i += 2;
+    }
+    else
+    {
+      result += str[i];
+    }
+  }
+  str = result;
+}
+
 void urlencoder::parseBodyContent(std::string& content, ctr& currentServer)
 {
   std::size_t i = 0;
@@ -21,6 +46,8 @@ void urlencoder::parseBodyContent(std::string& content, ctr& currentServer)
   {
     std::string key;
     std::string value;
+    //check all decoded characters
+    update_string(content);
     // split with &
     std::size_t pos = content.find('&', i);
     std::string pair;
