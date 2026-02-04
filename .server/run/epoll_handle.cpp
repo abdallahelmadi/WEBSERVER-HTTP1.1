@@ -43,11 +43,28 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     clientObj._buffer_read[clientObj.read_bytes] = '\0';
     clientObj._request_data.append(clientObj._buffer_read, clientObj.read_bytes);
     check_request_state(clientObj._request_data, clientObj);
+    if (clientObj.read_bytes >= BODY_LIMIT) {
+        // Body too large
+        std::map<std::string, std::string> Theaders;
+        Theaders["Content-Type"] = "text/html";
+        std::string responseStr = response(client, time::clock(), 413, Theaders, "", request(clientObj._request_data), currentServer).sendResponse();
+        clientObj.response = responseStr;
+        // Modify epoll to watch for write events
+        ev.events = EPOLLOUT;
+        if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client, &ev) < 0) {
+            console.issue("Failed to modify epoll for write event");
+            close(client);
+            return -1;
+        }
+        return 0;
+    }
     if (clientObj.header_complete == false || clientObj.body_complete == false) {
         return 0; // Wait for more data
     }
     else if (clientObj.header_complete == true && clientObj.body_complete == true) {
         request req(clientObj._request_data);
+
+
         long long startRequestTime = time::clock();
         if (req.getBadRequest() != 0) {
             // Handle bad request
