@@ -48,7 +48,7 @@ int handle_read_event(int client, ctr& currentServer, struct epoll_event& ev, Cl
     if (clientObj.header_complete == false || clientObj.body_complete == false) {
         return 0; // Wait for more data
     }
-    else if (clientObj.sum_read_bytes_body >= BODY_LIMIT) {
+    else if (clientObj.sum_read_bytes_body >= currentServer.bodyLimit()) {
         // Body too large
         std::map<std::string, std::string> Theaders;
         Theaders["Content-Type"] = "text/html";

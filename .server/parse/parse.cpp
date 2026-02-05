@@ -23,6 +23,7 @@ static int configRules(void) {
   console.log("         │                   should be unique and inside /app folder in the root");
   console.log("         │                   directory of /.server (required)");
   console.log("         ├───── version:     The version of your web application (optional, default: 0.1.0)");
+  console.log("         ├───── body_limit:  The max size of body (optional, default: 10485760)");
   console.log("         ├───── [status]:    Path to the HTML file to serve [status] code page (optional, default)");
   console.log("         ├───── index:       Default file to serve when accessing a directory (optional, default: index.html)");
   console.log("         ├───── root:        Root directory for serving static files (optional, default: /app/<name>/)");

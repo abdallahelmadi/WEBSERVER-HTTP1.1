@@ -3,8 +3,6 @@
 #include <vector>
 #include <map>
 
-#define BODY_LIMIT 10485760 // 10 MB
-
 class rt {
   private:
     std::string _path;
@@ -42,6 +40,7 @@ class rt {
 class ctr {
   private:
     std::size_t _port;
+    std::size_t _bodyLimit;
     std::string _name;
     std::string _version;
     std::map<std::string, std::string> _errorPages;
@@ -55,8 +54,9 @@ class ctr {
     inline std::map<std::string, std::string>& errorPages(void) throw() { return this->_errorPages; }
     inline std::string& index(void) throw() { return this->_index; }
     inline std::string& root(void) throw() { return this->_root; }
+    inline std::size_t& bodyLimit(void) throw() { return this->_bodyLimit; }
 
-    ctr(): _port(0) {}
+    ctr(): _port(0), _bodyLimit(0) {}
 
     rt& route(unsigned int index) throw() { return this->_routes[index]; }
     inline std::size_t length(void) const throw() { return this->_routes.size(); }

@@ -14,6 +14,8 @@ static void fillDefault(void) {
       server[i].name() = server[i].name();
     if (server[i].version().empty())
       server[i].version() = "0.1.0";
+    if (server[i].bodyLimit() == 0)
+      server[i].bodyLimit() = 10485760;
     if (server[i].root().empty())
       server[i].root() = "app/" + server[i].name() + "/";
     else
@@ -392,9 +394,18 @@ static void storeKeyValue(std::string const &key, std::string const &value, ctr 
     if (isDigit(temp))
       throw std::runtime_error("invalid port value");
     long long port = std::atoll(temp.c_str());
-    if (port < 1024 || port > 65535)
+    if (port < 0 || port > 65535)
       throw std::runtime_error("invalid port value");
     s.port() = static_cast<std::size_t>(port);
+  }
+  else if (key == "body_limit") {
+    if (isString(value))
+      throw std::runtime_error("invalid port body_limit");
+    std::string temp = value.substr(1, value.length() - 2);
+    if (isDigit(temp))
+      throw std::runtime_error("invalid body_limit value");
+    long long body_limit = std::atoll(temp.c_str());
+    s.bodyLimit() = static_cast<std::size_t>(body_limit);
   }
   else if (key == "name") {
     if (isString(value))

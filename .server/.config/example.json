@@ -6,6 +6,7 @@
       "version": "0.1.0",
       "index": "index.html",
       "root": "./",
+      "body_limit": "10485760",
       "routes": [
 
         { "path": "/upload", "source": "upload.html" },
