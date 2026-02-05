@@ -24,6 +24,7 @@ void check_request_state(const std::string& requestdata, Client& clientObj) {
     if (clientObj.header_complete && !clientObj.body_complete) {
         std::size_t header_end = clientObj._request_data.find("\r\n\r\n");
         std::size_t body_start = header_end + 4;
+        clientObj.sum_read_bytes_body = clientObj._request_data.length() - body_start;
         if (clientObj._request_data.length() - body_start >= clientObj.content_length) {
             clientObj.body_complete = true;
         }

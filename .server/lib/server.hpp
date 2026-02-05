@@ -3,6 +3,8 @@
 #include <vector>
 #include <map>
 
+#define BODY_LIMIT 10485760 // 10 MB
+
 class rt {
   private:
     std::string _path;
